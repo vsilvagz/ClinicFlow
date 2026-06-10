@@ -1,0 +1,48 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.installed.cfg
+*.egg
+
+# ---- Entornos virtuales ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Variables de entorno / secretos ----
+.env
+.env.*
+!.env.example
+
+# ---- Bases de datos locales ----
+*.db
+*.sqlite3
+clinicflow.db
+
+# ---- ARQUITECTURA.md (lectura local, no se sube) ----
+docs/ARQUITECTURA.md
+
+# ---- Testing / coverage ----
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.mypy_cache/
+.ruff_cache/
+pytest-cache-files-*/
+
+# ---- IDEs / editores ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# ---- Docker ----
+docker-compose.override.yml

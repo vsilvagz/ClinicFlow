@@ -1,0 +1,36 @@
+# Levanta toda la plataforma con: docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clinicflow
+      POSTGRES_PASSWORD: clinicflow
+      POSTGRES_DB: clinicflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinicflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      # Sobrescribe el host de la BD para apuntar al servicio "db".
+      DATABASE_URL: postgresql+psycopg2://clinicflow:clinicflow@db:5432/clinicflow
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/code   # hot-reload en desarrollo
+    command: uvicorn app.backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  pgdata:

@@ -1,0 +1,33 @@
+# ---- Núcleo web ----
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.7.4
+pydantic-settings==2.3.4
+
+# ---- Persistencia ----
+SQLAlchemy==2.0.31
+psycopg2-binary==2.9.9       # driver PostgreSQL
+alembic==1.13.2             # migraciones
+
+# ---- Autenticación ----
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.9
+
+# ---- Integración Telegram ----
+python-telegram-bot==21.3
+
+# ---- Integración LLM (ajustar al proveedor elegido) ----
+openai==1.35.7
+
+# ---- Frontend (templates server-side) ----
+jinja2==3.1.4
+
+# ---- Utilidades ----
+httpx==0.27.0
+python-dotenv==1.0.1
+
+# ---- Testing / calidad ----
+pytest==8.2.2
+pytest-asyncio==0.23.7
+ruff==0.5.0
