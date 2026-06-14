@@ -5,12 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from app.backend.domain.citas import Cita
-from app.backend.domain.errores import (
-    AgendaSuspendida,
-    ConflictoDeAgenda,
-    HorarioNoDisponible,
-)
+from citas import Cita
+from errores import AgendaSuspendida, ConflictoDeAgenda, HorarioNoDisponible
 
 
 @dataclass
