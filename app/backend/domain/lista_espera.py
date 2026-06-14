@@ -5,9 +5,11 @@ from datetime import datetime
 from typing import Optional
 # Optional permitirá que el resultado final de una función pueda ser de diistintos tipos.
 
-from app.backend.domain.usuarios import Paciente, Medico, Especialidad, Clinica
+from app.backend.domain.usuarios import Paciente, Medico
 from app.backend.domain.enums import PrioridadEspera
 from app.backend.domain.citas import Cita
+from app.backend.domain.especialidades import Especialidad
+from app.backend.domain.clinica import Clinica
 
 # Definimos el peso de las prioridades para poder ordenarlas.
 nivel_urgencia = {
