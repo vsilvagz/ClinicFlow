@@ -1,6 +1,6 @@
 """Tipos de usuario del sistema y sus permisos."""
 
-from app.backend.domain.agenda import Agenda
+from agenda import Agenda
 
 
 class Usuario:
