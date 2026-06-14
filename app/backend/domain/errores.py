@@ -47,3 +47,15 @@ class ListaEsperaLlena(ClinicFlowError):
 
 class PacienteYaEnEspera(ClinicFlowError):
     """El paciente ya está inscrito en la lista de espera de esa especialidad."""
+
+
+class DerivacionNoEncontrada(ClinicFlowError):
+    """No se encontró la derivación solicitada."""
+
+
+class DerivacionExpirada(ClinicFlowError):
+    """La derivación ya no es válida por haber superado su plazo de vigencia."""
+
+
+class DerivacionYaUsada(ClinicFlowError):
+    """La derivación ya fue completada o rechazada y no puede utilizarse nuevamente."""
