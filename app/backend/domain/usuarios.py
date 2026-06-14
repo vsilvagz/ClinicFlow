@@ -39,10 +39,12 @@ class Usuario:
         self._telefono = valor
 
 
+# Paciente solo puede hacer cosas relacionadas con sus propias citas, además de interactuar con Telegram.
 class Paciente(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._derivaciones_especialidades_permitidas: list[str] = []
+        # Si un médico activó una derivación, esta queda validada dentro de la lista para que el sistema pueda aprobar una hora en dicha especialidad.
 
     @property
     def derivaciones_especialidades_permitidas(self) -> list[str]:
@@ -52,6 +54,15 @@ class Paciente(Usuario):
         self._derivaciones_especialidades_permitidas.append(especialidad)
 
 
+# Un médico debe tener una especialidad (UTILIZAREMOS COMPOSICIÓN).
+class Especialidad:
+
+    def __init__(self, nombre: str, descripcion: str = " "):
+        self.nombre = nombre 
+        self.descripcion = descripcion
+
+
+# Médico solo puede hacer cosas relacionadas con su propia agenda agenda, además de ver info de sus pacientes y derivaciones.
 class Medico(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, especialidad):
         super().__init__(RUN_usuario, nombre, correo, telefono)
@@ -66,10 +77,25 @@ class Medico(Usuario):
         self._especialidad = valor
 
 
+# Una clínica es única y pueden haber varias usando el sistema.
+class Clinica:
+
+    def __init__(self, nombre: str, direccion: str):
+        self.nombre = nombre  
+        self.direccion = direccion
+        self.medicos_disponibles: list[Medico] = []  
+        self.especialidades_presentes: list[Especialidad] = []  
+        # self.medicos_disponibles hace referencia a una lista con los médicos disponibles en una clínica en particular.
+        # self.especialidades_ofrecidas hace referencia a una lista con las especialidades existentes en una clínica en particular.
+
+# Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes. 
+# Pueden gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
 class Recepcionista(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, clinica):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._clinica = clinica
+        # El/La recepcionista trabaja en una clínica específica (Enunciado especifica "Administrar clínicas").
+        # Útil si por ejemplo hay distintas sucursales.
 
     @property
     def clinica(self):
@@ -79,11 +105,13 @@ class Recepcionista(Usuario):
     def clinica(self, valor):
         self._clinica = valor
 
-
+# Administrador(a) tiene acceso completo al sistema.
 class Administrador(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self.__acceso_vip = True
+        # Acceso total para administrar, configurar y visualiar todo el sistema.
+        # ESTA ÚLTIMA VARIABLE SERÁ ÚTIL EN EL FUTURO PARA DARLE AL RECEPCIONSITA LOS PERMISOS CORRESPONDIENTES.
 
     @property
     def acceso_vip(self) -> bool:
