@@ -1,5 +1,8 @@
 """Lista de espera de pacientes por especialidad."""
 
+from datetime import datetime
+from usuarios import Especialidad, Paciente
+
 
 class Lista_de_Espera:
 
