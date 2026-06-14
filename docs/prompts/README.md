@@ -55,6 +55,12 @@ La clase debe:
 
 ---
 
+## `app/backend/domain/usuarios.py` — Atributos y métodos de Medico
+
+**Prompt:** Agrega a la clase `Medico` en `usuarios.py` el atributo `_derivaciones_emitidas: list[Derivacion]` (inicializado como lista vacía en `__init__`) y los métodos `bloquear_horario(inicio, fin, motivo)`, `suspender_agenda(inicio, fin, motivo)`, `registrar_derivacion(derivacion)`, `derivaciones_vigentes()` e `historial_derivaciones()`. Los métodos `bloquear_horario` y `suspender_agenda` deben delegar directamente en `self._agenda.bloquear()` y `self._agenda.suspender()` respectivamente, devolviendo sus resultados. Importa `Bloqueo` y `Suspension` desde `agenda.py`, `Derivacion` desde `derivacion.py` y `datetime` desde la librería estándar. Verifica que no haya imports circulares antes de modificar.
+
+---
+
 ## `app/backend/domain/usuarios.py` — Atributos y métodos de Paciente
 
 **Prompt:** Agrega a la clase `Paciente` en `usuarios.py` el atributo `_citas: list[Cita]` (inicializado como lista vacía en `__init__`) y los métodos `registrar_cita(cita)`, `citas_activas()`, `tiene_cita_en_especialidad(especialidad)` e `historial_citas()`. Importa `Cita` desde `citas.py` a nivel de módulo verificando que no haya imports circulares. El método `citas_activas()` debe devolver solo las citas en estado PENDIENTE o CONFIRMADA usando la propiedad `esta_activa` de `Cita`. El método `tiene_cita_en_especialidad()` permite validar si el paciente ya tiene una cita activa en una especialidad, lo cual es necesario para la lógica de lista de espera.

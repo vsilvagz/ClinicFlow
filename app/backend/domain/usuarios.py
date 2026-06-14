@@ -1,7 +1,10 @@
 """Tipos de usuario del sistema y sus permisos."""
 
-from agenda import Agenda
+from datetime import datetime
+
+from agenda import Agenda, Bloqueo, Suspension
 from citas import Cita
+from derivacion import Derivacion
 from especialidades import Especialidad
 
 
@@ -77,6 +80,7 @@ class Medico(Usuario):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._especialidad = especialidad
         self._agenda: Agenda = Agenda()
+        self._derivaciones_emitidas: list[Derivacion] = []
 
     @property
     def especialidad(self) -> Especialidad:
@@ -89,6 +93,21 @@ class Medico(Usuario):
     @property
     def agenda(self) -> Agenda:
         return self._agenda
+
+    def bloquear_horario(self, inicio: datetime, fin: datetime, motivo: str = "") -> Bloqueo:
+        return self._agenda.bloquear(inicio, fin, motivo)
+
+    def suspender_agenda(self, inicio: datetime, fin: datetime, motivo: str = "") -> tuple[Suspension, list[Cita]]:
+        return self._agenda.suspender(inicio, fin, motivo)
+
+    def registrar_derivacion(self, derivacion: Derivacion) -> None:
+        self._derivaciones_emitidas.append(derivacion)
+
+    def derivaciones_vigentes(self) -> list[Derivacion]:
+        return [d for d in self._derivaciones_emitidas if d.esta_activa]
+
+    def historial_derivaciones(self) -> list[Derivacion]:
+        return list(self._derivaciones_emitidas)
 
 
 # Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes. 
