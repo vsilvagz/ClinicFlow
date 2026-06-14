@@ -55,6 +55,12 @@ La clase debe:
 
 ---
 
+## `app/backend/domain/usuarios.py` — Atributos y métodos de Paciente
+
+**Prompt:** Agrega a la clase `Paciente` en `usuarios.py` el atributo `_citas: list[Cita]` (inicializado como lista vacía en `__init__`) y los métodos `registrar_cita(cita)`, `citas_activas()`, `tiene_cita_en_especialidad(especialidad)` e `historial_citas()`. Importa `Cita` desde `citas.py` a nivel de módulo verificando que no haya imports circulares. El método `citas_activas()` debe devolver solo las citas en estado PENDIENTE o CONFIRMADA usando la propiedad `esta_activa` de `Cita`. El método `tiene_cita_en_especialidad()` permite validar si el paciente ya tiene una cita activa en una especialidad, lo cual es necesario para la lógica de lista de espera.
+
+---
+
 ## `app/backend/domain/especialidades.py` — Catálogo de especialidades médicas
 
 **Prompt:** Crea el archivo `especialidades.py` en el módulo `domain` y mueve la clase `Especialidad` desde `usuarios.py` hacia él. La clase debe implementarse como un `Enum` con un catálogo predefinido de especialidades médicas, donde cada entrada tenga `nombre` y `descripcion` como atributos. Usa una tupla como valor de cada miembro del enum y desempáquetala en `__init__`. Incluye al menos las siguientes especialidades: Medicina General, Cardiología, Neurología, Traumatología, Pediatría, Ginecología, Oftalmología, Dermatología, Psiquiatría, Urología, Gastroenterología y Otorrinolaringología. Actualiza el import en `usuarios.py` para obtener `Especialidad` desde `especialidades.py` y elimínala de `usuarios.py`.

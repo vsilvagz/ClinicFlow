@@ -1,6 +1,7 @@
 """Tipos de usuario del sistema y sus permisos."""
 
 from agenda import Agenda
+from citas import Cita
 from especialidades import Especialidad
 
 
@@ -48,13 +49,26 @@ class Paciente(Usuario):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._derivaciones_especialidades_permitidas: list[str] = []
         # Si un médico activó una derivación, esta queda validada dentro de la lista para que el sistema pueda aprobar una hora en dicha especialidad.
+        self._citas: list[Cita] = []
 
     @property
     def derivaciones_especialidades_permitidas(self) -> list[str]:
         return list(self._derivaciones_especialidades_permitidas)
 
-    def agregar_derivacion(self, especialidad: str):
+    def agregar_derivacion(self, especialidad: str) -> None:
         self._derivaciones_especialidades_permitidas.append(especialidad)
+
+    def registrar_cita(self, cita: Cita) -> None:
+        self._citas.append(cita)
+
+    def citas_activas(self) -> list[Cita]:
+        return [c for c in self._citas if c.esta_activa]
+
+    def tiene_cita_en_especialidad(self, especialidad: str) -> bool:
+        return any(c.especialidad == especialidad for c in self.citas_activas())
+
+    def historial_citas(self) -> list[Cita]:
+        return list(self._citas)
 
 
 # Médico solo puede hacer cosas relacionadas con su propia agenda agenda, además de ver info de sus pacientes y derivaciones.
