@@ -66,17 +66,17 @@ class Especialidad:
 
 # Médico solo puede hacer cosas relacionadas con su propia agenda agenda, además de ver info de sus pacientes y derivaciones.
 class Medico(Usuario):
-    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, especialidad):
+    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, especialidad: Especialidad):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._especialidad = especialidad
         self._agenda: Agenda = Agenda()
 
     @property
-    def especialidad(self):
+    def especialidad(self) -> Especialidad:
         return self._especialidad
 
     @especialidad.setter
-    def especialidad(self, valor):
+    def especialidad(self, valor: Especialidad):
         self._especialidad = valor
 
     @property
