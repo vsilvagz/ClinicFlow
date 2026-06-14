@@ -1,5 +1,7 @@
 """Tipos de usuario del sistema y sus permisos."""
 
+from app.backend.domain.agenda import Agenda
+
 
 class Usuario:
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
@@ -67,6 +69,7 @@ class Medico(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, especialidad):
         super().__init__(RUN_usuario, nombre, correo, telefono)
         self._especialidad = especialidad
+        self._agenda: Agenda = Agenda()
 
     @property
     def especialidad(self):
@@ -75,6 +78,10 @@ class Medico(Usuario):
     @especialidad.setter
     def especialidad(self, valor):
         self._especialidad = valor
+
+    @property
+    def agenda(self) -> Agenda:
+        return self._agenda
 
 
 # Una clínica es única y pueden haber varias usando el sistema.

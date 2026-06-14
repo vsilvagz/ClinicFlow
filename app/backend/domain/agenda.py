@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from uuid import UUID
 
 from app.backend.domain.citas import Cita
 from app.backend.domain.errores import (
@@ -67,11 +66,9 @@ class Agenda:
 
     def __init__(
         self,
-        medico_id: UUID,
         duracion_slot_minutos: int = 30,
         capacidad_maxima_dia: int | None = None,
     ):
-        self._medico_id = medico_id
         self._duracion_slot = duracion_slot_minutos
         self._capacidad_maxima_dia = capacidad_maxima_dia
         self._horarios: list[BloqueHorario] = []
@@ -82,10 +79,6 @@ class Agenda:
     # ------------------------------------------------------------------
     # Propiedades
     # ------------------------------------------------------------------
-
-    @property
-    def medico_id(self) -> UUID:
-        return self._medico_id
 
     @property
     def duracion_slot_minutos(self) -> int:
