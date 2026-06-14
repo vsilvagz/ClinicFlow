@@ -77,17 +77,6 @@ class Medico(Usuario):
         return self._agenda
 
 
-# Una clínica es única y pueden haber varias usando el sistema.
-class Clinica:
-
-    def __init__(self, nombre: str, direccion: str):
-        self.nombre = nombre  
-        self.direccion = direccion
-        self.medicos_disponibles: list[Medico] = []  
-        self.especialidades_presentes: list[Especialidad] = []  
-        # self.medicos_disponibles hace referencia a una lista con los médicos disponibles en una clínica en particular.
-        # self.especialidades_ofrecidas hace referencia a una lista con las especialidades existentes en una clínica en particular.
-
 # Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes. 
 # Pueden gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
 class Recepcionista(Usuario):
