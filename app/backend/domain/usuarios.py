@@ -1,6 +1,7 @@
 """Tipos de usuario del sistema y sus permisos."""
 
 from agenda import Agenda
+from especialidades import Especialidad
 
 
 class Usuario:
@@ -54,14 +55,6 @@ class Paciente(Usuario):
 
     def agregar_derivacion(self, especialidad: str):
         self._derivaciones_especialidades_permitidas.append(especialidad)
-
-
-# Un médico debe tener una especialidad (UTILIZAREMOS COMPOSICIÓN).
-class Especialidad:
-
-    def __init__(self, nombre: str, descripcion: str = " "):
-        self.nombre = nombre 
-        self.descripcion = descripcion
 
 
 # Médico solo puede hacer cosas relacionadas con su propia agenda agenda, además de ver info de sus pacientes y derivaciones.

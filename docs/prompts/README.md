@@ -52,3 +52,9 @@ La clase debe:
 - Al completarse, vincular la derivación a la `Cita` resultante mediante `cita_resultante_id`.
 - Agregar a `enums.py` el enum `EstadoDerivacion` y a `errores.py` las excepciones `DerivacionNoEncontrada`, `DerivacionExpirada` y `DerivacionYaUsada`, heredando de `ClinicFlowError`.
 - Usar el parámetro `ahora` en los métodos que dependan del tiempo, para facilitar el testing.
+
+---
+
+## `app/backend/domain/especialidades.py` — Catálogo de especialidades médicas
+
+**Prompt:** Crea el archivo `especialidades.py` en el módulo `domain` y mueve la clase `Especialidad` desde `usuarios.py` hacia él. La clase debe implementarse como un `Enum` con un catálogo predefinido de especialidades médicas, donde cada entrada tenga `nombre` y `descripcion` como atributos. Usa una tupla como valor de cada miembro del enum y desempáquetala en `__init__`. Incluye al menos las siguientes especialidades: Medicina General, Cardiología, Neurología, Traumatología, Pediatría, Ginecología, Oftalmología, Dermatología, Psiquiatría, Urología, Gastroenterología y Otorrinolaringología. Actualiza el import en `usuarios.py` para obtener `Especialidad` desde `especialidades.py` y elimínala de `usuarios.py`.
