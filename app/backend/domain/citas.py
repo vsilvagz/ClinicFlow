@@ -32,10 +32,10 @@ from uuid import UUID, uuid4
 
 # EstadoCita: enumeración con los 6 estados posibles de una cita
 # (definida en enums.py, exigida por el enunciado sección 3.1.1).
-from app.backend.domain.enums import EstadoCita
+from enums import EstadoCita
 
 # Errores de dominio propios del proyecto (definidos en errores.py).
-from app.backend.domain.errores import (
+from errores import (
     CitaEnPasadoError,        # Se lanza si el inicio de la cita ya pasó.
     ConflictoDeAgenda,        # Se lanza si dos citas del mismo médico se superponen.
     TransicionEstadoInvalida, # Se lanza si el cambio de estado no está permitido.

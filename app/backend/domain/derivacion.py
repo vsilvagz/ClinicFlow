@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID, uuid4
 
-from app.backend.domain.enums import EstadoDerivacion
-from app.backend.domain.errores import DerivacionExpirada, TransicionEstadoInvalida
+from enums import EstadoDerivacion
+from errores import DerivacionExpirada, TransicionEstadoInvalida
 
 # Transiciones válidas desde cada estado
 _TRANSICIONES: dict[EstadoDerivacion, frozenset[EstadoDerivacion]] = {
