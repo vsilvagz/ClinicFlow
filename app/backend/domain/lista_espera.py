@@ -17,6 +17,7 @@ nivel_urgencia = {
     PrioridadEspera.BAJA: 3
 }
 
+
 class Lista_de_Espera:
 
     def __init__(self, especialidad: Especialidad, clinica: Clinica):

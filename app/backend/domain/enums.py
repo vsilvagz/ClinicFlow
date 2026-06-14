@@ -24,3 +24,11 @@ class PrioridadEspera(str, Enum):
     NORMAL = "normal"
     ALTA = "alta"
     URGENTE = "urgente"
+
+
+class EstadoDerivacion(str, Enum):
+    PENDIENTE = "pendiente"
+    ACEPTADA = "aceptada"
+    RECHAZADA = "rechazada"
+    COMPLETADA = "completada"
+    EXPIRADA = "expirada"

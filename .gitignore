@@ -46,3 +46,6 @@ pytest-cache-files-*/
 
 # ---- Docker ----
 docker-compose.override.yml
+
+# ---- Archivos de prueba locales ----
+test.py
