@@ -9,6 +9,7 @@ from app.backend.domain.agenda import Agenda, Bloqueo, Suspension
 from app.backend.domain.citas import Cita
 from app.backend.domain.derivacion import Derivacion
 from app.backend.domain.especialidades import Especialidad
+from app.backend.domain.clinica import Clinica
 
 if TYPE_CHECKING:
     from app.backend.domain.lista_espera import Lista_de_Espera
