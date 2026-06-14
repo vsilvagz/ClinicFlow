@@ -26,8 +26,9 @@ from datetime import datetime, timedelta
 # Optional[T] indica que un valor puede ser de tipo T o puede ser None.
 from typing import Optional
 
-# UUID: identificador único universal (código irrepetible de 128 bits).
+# UUID: identificador único universal, usado solo para el ID de la propia cita.
 # uuid4: función que genera un UUID aleatorio cada vez que se llama.
+# Nota: paciente_id y medico_id usan int (RUN_usuario), consistente con usuarios.py.
 from uuid import UUID, uuid4
 
 # EstadoCita: enumeración con los 6 estados posibles de una cita
@@ -101,9 +102,13 @@ class Cita:
     # ── Atributos obligatorios ────────────────────────────────────────────────
     # Todos estos deben entregarse al crear la cita (sin valor por defecto).
 
-    id: UUID            # Código único irrepetible que identifica esta cita.
-    paciente_id: UUID   # ID del paciente que tiene la cita.
-    medico_id: UUID     # ID del médico que atenderá la cita.
+    id: UUID    # Código único irrepetible que identifica esta cita.
+
+    # paciente_id y medico_id son el RUN_usuario (int) de cada persona,
+    # consistente con la clase Usuario en usuarios.py y Lista_de_Espera.
+    paciente_id: int    # RUN del paciente que tiene la cita.
+    medico_id: int      # RUN del médico que atenderá la cita.
+
     especialidad: str   # Nombre de la especialidad, ej. "Cardiología".
     inicio: datetime    # Fecha y hora en que empieza la cita.
     fin: datetime       # Fecha y hora en que termina la cita.
@@ -117,11 +122,11 @@ class Cita:
     # Anotaciones adicionales del médico o recepcionista sobre esta cita.
     notas: Optional[str] = field(default=None)
 
-    # Si esta cita reemplaza a una anterior, guardamos el ID de esa cita original.
+    # Si esta cita reemplaza a una anterior, guardamos el UUID de esa cita original.
     # Permite tener trazabilidad del historial de reagendamientos.
     reagendada_desde_id: Optional[UUID] = field(default=None)
 
-    # Si esta cita fue reemplazada por una nueva, guardamos el ID de la nueva.
+    # Si esta cita fue reemplazada por una nueva, guardamos el UUID de la nueva.
     reagendada_hacia_id: Optional[UUID] = field(default=None)
 
 
@@ -134,9 +139,9 @@ class Cita:
 
     @classmethod
     def crear(
-        cls,                              # 'cls' es la clase Cita (no una instancia).
-        paciente_id: UUID,                # Quién pide la cita.
-        medico_id: UUID,                  # Quién la atenderá.
+        cls,
+        paciente_id: int,                 # RUN del paciente.
+        medico_id: int,                   # RUN del médico.
         especialidad: str,                # Especialidad requerida.
         inicio: datetime,                 # Cuándo empieza.
         duracion_minutos: int = 30,       # Duración en minutos (30 por defecto).
@@ -172,7 +177,7 @@ class Cita:
 
         # Si todo es válido, construimos y devolvemos el objeto Cita.
         return cls(
-            id=uuid4(),                # Generamos un ID único al azar.
+            id=uuid4(),                # Generamos un UUID único para esta cita.
             paciente_id=paciente_id,
             medico_id=medico_id,
             especialidad=especialidad,
@@ -253,11 +258,11 @@ class Cita:
         Devuelve True si esta cita se superpone en horario con otra cita del mismo médico.
 
         Condiciones para que haya solapamiento:
-        1. Mismo médico (médicos distintos no comparten agenda).
+        1. Mismo médico (comparamos RUN_usuario).
         2. Ambas citas están activas (PENDIENTE o CONFIRMADA).
         3. Los intervalos de tiempo se superponen.
         """
-        # Condición 1: si los médicos son distintos, no puede haber conflicto.
+        # Condición 1: si los RUN de los médicos son distintos, no hay conflicto.
         if self.medico_id != otra.medico_id:
             return False
 
@@ -266,8 +271,7 @@ class Cita:
             return False
 
         # Condición 3: hay solapamiento si A empieza antes de que B termine,
-        # Y B empieza antes de que A termine. Es el algoritmo estándar para
-        # detectar superposición de intervalos de tiempo.
+        # Y B empieza antes de que A termine. Algoritmo estándar de superposición.
         return self.inicio < otra.fin and otra.inicio < self.fin
 
     def validar_no_solapa(self, citas_existentes: list[Cita]) -> None:
@@ -323,7 +327,6 @@ class Cita:
         se puede pasar al nuevo estado. Si no está permitido, lanza un error.
         """
         # Obtenemos los estados permitidos desde el estado actual.
-        # .get() devuelve frozenset() vacío si el estado no está en el diccionario.
         permitidos = _TRANSICIONES.get(self.estado, frozenset())
 
         # Si el nuevo estado no está entre los permitidos, lanzamos el error.
@@ -347,8 +350,8 @@ class Cita:
         return (
             f"Cita("
             f"id={self.id}, "
-            f"paciente={self.paciente_id}, "
-            f"medico={self.medico_id}, "
+            f"paciente_run={self.paciente_id}, "
+            f"medico_run={self.medico_id}, "
             f"inicio={self.inicio.isoformat()}, "
             f"fin={self.fin.isoformat()}, "
             f"estado={self.estado.value}"
