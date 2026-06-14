@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID, uuid4
 
-from enums import EstadoDerivacion
-from errores import DerivacionExpirada, TransicionEstadoInvalida
+from app.backend.domain.enums import EstadoDerivacion
+from app.backend.domain.errores import DerivacionExpirada, TransicionEstadoInvalida
 
 # Transiciones válidas desde cada estado
 _TRANSICIONES: dict[EstadoDerivacion, frozenset[EstadoDerivacion]] = {
@@ -45,15 +45,15 @@ class Derivacion:
     """
 
     id: UUID
-    paciente_id: UUID
-    medico_origen_id: UUID
+    paciente_id: int          # RUN_usuario del paciente derivado
+    medico_origen_id: int     # RUN_usuario del médico que emite la derivación
     especialidad_destino: str
     motivo: str
     estado: EstadoDerivacion
     creada_en: datetime
     expira_en: datetime
-    medico_destino_id: Optional[UUID] = field(default=None)
-    cita_resultante_id: Optional[UUID] = field(default=None)
+    medico_destino_id: Optional[int] = field(default=None)   # RUN_usuario del médico destino
+    cita_resultante_id: Optional[UUID] = field(default=None) # UUID de la Cita resultante
     notas: Optional[str] = field(default=None)
 
     # ------------------------------------------------------------------
@@ -63,12 +63,12 @@ class Derivacion:
     @classmethod
     def crear(
         cls,
-        paciente_id: UUID,
-        medico_origen_id: UUID,
+        paciente_id: int,
+        medico_origen_id: int,
         especialidad_destino: str,
         motivo: str,
         dias_vigencia: int = DIAS_VIGENCIA_DEFAULT,
-        medico_destino_id: Optional[UUID] = None,
+        medico_destino_id: Optional[int] = None,
         notas: Optional[str] = None,
         ahora: Optional[datetime] = None,
     ) -> Derivacion:

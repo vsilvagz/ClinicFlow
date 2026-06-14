@@ -1,7 +1,7 @@
 """Entidad Clínica: agrupa médicos y especialidades de un centro médico."""
 
-from especialidades import Especialidad
-from usuarios import Medico
+from app.backend.domain.especialidades import Especialidad
+from app.backend.domain.usuarios import Medico
 
 
 class Clinica:

@@ -1,8 +1,8 @@
 """Lista de espera de pacientes por especialidad."""
 
 from datetime import datetime
-from especialidades import Especialidad
-from usuarios import Paciente
+from app.backend.domain.especialidades import Especialidad
+from app.backend.domain.usuarios import Paciente
 
 
 class Lista_de_Espera:

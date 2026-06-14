@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from agenda import Agenda, Bloqueo, Suspension
-from citas import Cita
-from derivacion import Derivacion
-from especialidades import Especialidad
+from app.backend.domain.agenda import Agenda, Bloqueo, Suspension
+from app.backend.domain.citas import Cita
+from app.backend.domain.derivacion import Derivacion
+from app.backend.domain.especialidades import Especialidad
 
 if TYPE_CHECKING:
-    from lista_espera import Lista_de_Espera
+    from app.backend.domain.lista_espera import Lista_de_Espera
 
 
 class Usuario:
