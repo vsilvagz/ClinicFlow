@@ -1,11 +1,17 @@
 """Tipos de usuario del sistema y sus permisos."""
 
-from datetime import datetime
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from agenda import Agenda, Bloqueo, Suspension
 from citas import Cita
 from derivacion import Derivacion
 from especialidades import Especialidad
+
+if TYPE_CHECKING:
+    from lista_espera import Lista_de_Espera
 
 
 class Usuario:
@@ -110,7 +116,7 @@ class Medico(Usuario):
         return list(self._derivaciones_emitidas)
 
 
-# Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes. 
+# Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes.
 # Pueden gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
 class Recepcionista(Usuario):
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, clinica):
@@ -126,6 +132,46 @@ class Recepcionista(Usuario):
     @clinica.setter
     def clinica(self, valor):
         self._clinica = valor
+
+    # ── Gestión de citas ──────────────────────────────────────────────────────
+
+    def confirmar_cita(self, cita: Cita) -> None:
+        cita.confirmar()
+
+    def cancelar_cita(self, cita: Cita) -> None:
+        cita.cancelar()
+
+    def marcar_no_asistio(self, cita: Cita) -> None:
+        cita.marcar_no_asistio()
+
+    def reagendar_cita(
+        self,
+        cita: Cita,
+        medico: Medico,
+        nueva_inicio: datetime,
+        duracion_minutos: int = 30,
+        ahora: datetime | None = None,
+    ) -> Cita:
+        """Reagenda la cita y registra la nueva en la agenda del médico."""
+        nueva = cita.reagendar(nueva_inicio, duracion_minutos, ahora)
+        medico.agenda.agregar_cita(nueva)
+        return nueva
+
+    # ── Visualización de agendas ──────────────────────────────────────────────
+
+    def ver_agenda_medico(self, medico: Medico, fecha: date) -> list[Cita]:
+        return medico.agenda.citas_del_dia(fecha)
+
+    def slots_disponibles_medico(self, medico: Medico, fecha: date) -> list[datetime]:
+        return medico.agenda.slots_disponibles(fecha)
+
+    # ── Listas de espera ──────────────────────────────────────────────────────
+
+    def agregar_a_lista_espera(self, lista: Lista_de_Espera, paciente: Paciente) -> bool:
+        return lista.agregar_paciente_en_lista(paciente)
+
+    def extraer_de_lista_espera(self, lista: Lista_de_Espera) -> Paciente | None:
+        return lista.extraer_paciente_de_lista()
 
 # Administrador(a) tiene acceso completo al sistema.
 class Administrador(Usuario):

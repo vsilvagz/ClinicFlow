@@ -67,6 +67,20 @@ La clase debe:
 
 ---
 
+## `app/backend/domain/usuarios.py` — Métodos de Recepcionista
+
+**Prompt:** Implementa los métodos de la clase `Recepcionista` en `usuarios.py`: gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
+
+Los métodos deben ser:
+
+- `confirmar_cita(cita)`, `cancelar_cita(cita)` y `marcar_no_asistio(cita)`: delegan directamente en los métodos de `Cita`.
+- `reagendar_cita(cita, medico, nueva_inicio, duracion_minutos, ahora)`: llama a `cita.reagendar()` para obtener la nueva cita y la registra en `medico.agenda` mediante `agregar_cita()`. Retorna la nueva cita.
+- `ver_agenda_medico(medico, fecha)`: devuelve las citas del día desde `medico.agenda.citas_del_dia(fecha)`.
+- `slots_disponibles_medico(medico, fecha)`: devuelve los slots libres desde `medico.agenda.slots_disponibles(fecha)`.
+- `agregar_a_lista_espera(lista, paciente)` y `extraer_de_lista_espera(lista)`: delegan en los métodos de `Lista_de_Espera`.
+
+---
+
 ## `app/backend/domain/especialidades.py` — Catálogo de especialidades médicas
 
 **Prompt:** Crea el archivo `especialidades.py` en el módulo `domain` y mueve la clase `Especialidad` desde `usuarios.py` hacia él. La clase debe implementarse como un `Enum` con un catálogo predefinido de especialidades médicas, donde cada entrada tenga `nombre` y `descripcion` como atributos. Usa una tupla como valor de cada miembro del enum y desempáquetala en `__init__`. Incluye al menos las siguientes especialidades: Medicina General, Cardiología, Neurología, Traumatología, Pediatría, Ginecología, Oftalmología, Dermatología, Psiquiatría, Urología, Gastroenterología y Otorrinolaringología. Actualiza el import en `usuarios.py` para obtener `Especialidad` desde `especialidades.py` y elimínala de `usuarios.py`.
