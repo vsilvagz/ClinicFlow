@@ -152,6 +152,14 @@ class Medico(Usuario):
         """Devuelve todas las derivaciones que el médico ha emitido (activas y cerradas)."""
         return list(self._derivaciones_emitidas)  # Devuelve una copia de la lista completa.
 
+    def __eq__(self, otro: object) -> bool:
+        if not isinstance(otro, Medico):
+            return NotImplemented
+        return self.RUN_usuario == otro.RUN_usuario
+
+    def __hash__(self) -> int:
+        return hash(self.RUN_usuario)
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Recepcionista: gestiona citas de los pacientes y agendas de los médicos
