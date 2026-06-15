@@ -13,8 +13,21 @@ from app.backend.domain.usuarios import Medico
 class Clinica:
 
     # __init__ es el constructor: se ejecuta al crear un objeto Clinica.
-    def __init__(self, nombre: str, direccion: str):
-        self.nombre = nombre      # Nombre de la clínica, ej: "Clínica Las Condes".
-        self.direccion = direccion  # Dirección física de la clínica, ej: "Av. Vitacura 5951".
-        self.medicos_disponibles: list[Medico] = []          # Lista de médicos que atienden en esta clínica.
-        self.especialidades_presentes: list[Especialidad] = []  # Lista de especialidades disponibles en esta clínica.
+    def __init__(self, RUT_empresa, nombre: str, direccion: str = "Dirección no especificada"):
+        self.RUT_empresa = RUT_empresa
+        self.nombre = nombre 
+        self.direccion = direccion 
+        self.medicos_disponibles: list[Medico] = [] 
+        self.especialidades_presentes: list[Especialidad] = [] 
+
+    def registrar_medico(self, medico: Medico) -> None:
+        """Agrega un nuevo médico al staff de la clínica si no está repetido."""
+        if medico not in self.medicos_disponibles:
+            self.medicos_disponibles.append(medico)
+            print(f"Médico {medico.nombre} registrado en {self.nombre}.")
+
+    def registrar_especialidad(self, especialidad: Especialidad) -> None:
+        """Agrega una especialidad a los servicios de la clínica si no existe."""
+        if especialidad not in self.especialidades_presentes:
+            self.especialidades_presentes.append(especialidad)
+            print(f"Especialidad {especialidad.nombre} habilitada en {self.nombre}.")
