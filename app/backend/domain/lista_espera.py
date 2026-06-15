@@ -168,7 +168,7 @@ class Lista_de_Espera:
                     cupo_asignado = False  # Continuamos con el siguiente en la lista.
 
         # Devolvemos a la lista oficial a todos los que dijeron que no podían, respetando su urgencia y fecha original.
-        for paciente, urgencia, fecha in pacientes_a_reinsertar:
-            self.agregar_paciente_en_lista(paciente, urgencia, fecha)
+        for p, prio, fec in pacientes_a_reinsertar:
+            self.agregar_paciente_en_lista(paciente=p, prioridad=prio, fecha_inscripcion=fec)
 
         return cupo_asignado  # True si se asignó el cupo, False si la lista estaba vacía o todos rechazaron.
