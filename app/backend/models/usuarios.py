@@ -27,6 +27,8 @@ from app.backend.core.database import Base
 
 if TYPE_CHECKING:
     from app.backend.models.especialidades import EspecialidadORM
+    from app.backend.models.clinica import ClinicaORM
+    from app.backend.models.agenda import AgendaORM
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -94,6 +96,18 @@ class MedicoORM(UsuarioORM):
         back_populates="medicos"
     )
 
+    # agenda: relación UNO-A-UNO (uselist=False). Cada médico tiene exactamente
+    # una agenda propia (composición del dominio). La FK vive en la tabla agendas.
+    agenda: Mapped["AgendaORM"] = relationship(
+        back_populates="medico", uselist=False
+    )
+
+    # clinicas: MUCHOS-A-MUCHOS con ClinicaORM vía "clinica_medicos". Un médico
+    # puede trabajar en varias clínicas (sucursales) y una clínica tiene varios.
+    clinicas: Mapped[list["ClinicaORM"]] = relationship(
+        secondary="clinica_medicos", back_populates="medicos"
+    )
+
     __mapper_args__ = {"polymorphic_identity": RolUsuario.MEDICO}
 
 
@@ -103,6 +117,16 @@ class MedicoORM(UsuarioORM):
 # ──────────────────────────────────────────────────────────────────────────────
 
 class RecepcionistaORM(UsuarioORM):
+    # clinica_rut: FK a la clínica donde trabaja. Nula para los demás roles.
+    clinica_rut: Mapped[str | None] = mapped_column(
+        ForeignKey("clinicas.rut_empresa"), nullable=True
+    )
+
+    # clinica: lado "muchos-a-uno". Varias recepcionistas por clínica.
+    clinica: Mapped["ClinicaORM | None"] = relationship(
+        back_populates="recepcionistas"
+    )
+
     __mapper_args__ = {"polymorphic_identity": RolUsuario.RECEPCIONISTA}
 
 

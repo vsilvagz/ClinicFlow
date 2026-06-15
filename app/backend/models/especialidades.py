@@ -25,6 +25,7 @@ from app.backend.core.database import Base
 
 if TYPE_CHECKING:
     from app.backend.models.usuarios import MedicoORM
+    from app.backend.models.clinica import ClinicaORM
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -51,6 +52,13 @@ class EspecialidadORM(Base):
     # muchos médicos; cada médico apunta de vuelta con `especialidad`.
     # Es perezosa: no carga los médicos hasta que se acceden.
     medicos: Mapped[list["MedicoORM"]] = relationship(back_populates="especialidad")
+
+    # clinicas: lado "muchos-a-muchos" con ClinicaORM, a través de la tabla
+    # intermedia "clinica_especialidades" (definida en clinica.py). Una
+    # especialidad puede ofrecerse en varias clínicas y viceversa.
+    clinicas: Mapped[list["ClinicaORM"]] = relationship(
+        secondary="clinica_especialidades", back_populates="especialidades"
+    )
 
     def __repr__(self) -> str:
         return f"EspecialidadORM(id={self.id}, nombre={self.nombre!r})"
