@@ -105,7 +105,10 @@ class Agenda:
         duracion_slot_minutos: int = 30,      # Duración de cada turno en minutos (30 por defecto).
         capacidad_maxima_dia: int | None = None, # Límite de citas por día (None = sin límite).
     ):
-        self._duracion_slot = duracion_slot_minutos  # Guardamos la duración del slot como atributo privado.
+        if duracion_slot_minutos <= 0:
+            raise ValueError("La duración del slot debe ser mayor a 0.")
+        else:
+            self._duracion_slot = duracion_slot_minutos  # Guardamos la duración del slot como atributo privado.
         self._capacidad_maxima_dia = capacidad_maxima_dia  # Guardamos el límite diario (puede ser None).
         self._horarios: list[BloqueHorario] = []   # Lista de turnos semanales recurrentes.
         self._bloqueos: list[Bloqueo] = []         # Lista de bloqueos puntuales.
