@@ -16,10 +16,12 @@ from app.backend.domain.citas import Cita                          # Citas médi
 from app.backend.domain.derivacion import Derivacion               # Derivaciones entre especialidades.
 from app.backend.domain.especialidades import Especialidad         # Especialidad médica.
 
-# Lista_de_Espera se importa SOLO para revisión de tipos (no en ejecución),
-# para evitar un ciclo: usuarios.py importa lista_espera.py que importa usuarios.py.
+# Importaciones solo para revisión de tipos (no se ejecutan): evitan ciclos de importación.
+# Clinica importa Medico desde este módulo, por lo que no podemos importar Clinica aquí
+# directamente sin crear un ciclo. Ponerla bajo TYPE_CHECKING evita el error en ejecución.
 if TYPE_CHECKING:
     from app.backend.domain.lista_espera import Lista_de_Espera
+    from app.backend.domain.clinica import Clinica
 
 
 # ──────────────────────────────────────────────────────────────────────────────
