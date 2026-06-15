@@ -233,7 +233,7 @@ class Administrador(Usuario):
         super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
         self.__acceso_vip = True  # Atributo privado que marca el acceso total al sistema.
         # Acceso total para administrar, configurar y visualizar todo el sistema.
-        # ESTA ÚLTIMA VARIABLE SERÁ ÚTIL EN EL FUTURO PARA DARLE AL RECEPCIONISTA LOS PERMISOS CORRESPONDIENTES.
+        # ESTA ÚLTIMA VARIABLE SERÁ ÚTIL EN EL FUTURO PARA DARLE AL ADMINISTRADOR LOS PERMISOS CORRESPONDIENTES.
 
     @property
     def acceso_vip(self) -> bool:
