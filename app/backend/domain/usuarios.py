@@ -1,156 +1,209 @@
 """Tipos de usuario del sistema y sus permisos."""
 
-# Permite usar tipos de la propia clase dentro de sus métodos sin errores de Python.
 from __future__ import annotations
 
-# date: solo fecha, ej: 2026-06-14. datetime: fecha y hora, ej: 2026-06-14 10:30.
 from datetime import date, datetime
+from typing import TYPE_CHECKING, Optional
 
-# TYPE_CHECKING: bloque que solo se evalúa al revisar tipos, no al ejecutar.
-# Sirve para evitar importaciones circulares (A importa B, B importa A).
-from typing import TYPE_CHECKING
+from app.backend.domain.agenda import Agenda, Bloqueo, Suspension
+from app.backend.domain.citas import Cita
+from app.backend.domain.derivacion import Derivacion, DIAS_VIGENCIA_DEFAULT
+from app.backend.domain.enums import PrioridadEspera
+from app.backend.domain.especialidades import Especialidad
 
-# Importamos las clases que los usuarios necesitan para funcionar.
-from app.backend.domain.agenda import Agenda, Bloqueo, Suspension  # Agenda del médico.
-from app.backend.domain.citas import Cita                          # Citas médicas.
-from app.backend.domain.derivacion import Derivacion               # Derivaciones entre especialidades.
-from app.backend.domain.especialidades import Especialidad         # Especialidad médica.
-
-# Importaciones solo para revisión de tipos (no se ejecutan): evitan ciclos de importación.
-# Clinica importa Medico desde este módulo, por lo que no podemos importar Clinica aquí
-# directamente sin crear un ciclo. Ponerla bajo TYPE_CHECKING evita el error en ejecución.
 if TYPE_CHECKING:
     from app.backend.domain.lista_espera import Lista_de_Espera
-    from app.backend.domain.clinica import Clinica
+    from app.backend.domain.clinica import Clinica  # evita importación circular
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# CLASE BASE: Usuario
-# Contiene los datos comunes a todos los tipos de usuario del sistema.
-# Las demás clases (Paciente, Medico, etc.) heredan de esta.
-# ──────────────────────────────────────────────────────────────────────────────
 
 class Usuario:
-    # __init__ es el constructor: se ejecuta al crear un objeto Usuario (o de cualquier subclase).
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
-        self.__RUN_usuario = RUN_usuario  # Doble guión bajo (__): atributo privado, no accesible desde fuera.
-        self._nombre = nombre             # Un guión bajo (_): atributo protegido, accesible a subclases.
-        self._correo = correo             # Correo electrónico del usuario.
-        self._telefono = telefono         # Teléfono de contacto.
+        self.__RUN_usuario = RUN_usuario
+        self._nombre = nombre
+        self._correo = correo
+        self._telefono = telefono
 
-    @property  # RUN_usuario es de solo lectura: no se puede cambiar después de creado.
+    @property
     def RUN_usuario(self) -> int:
-        return self.__RUN_usuario  # Devuelve el RUN almacenado en el atributo privado.
+        return self.__RUN_usuario
 
     @property
     def nombre(self) -> str:
-        return self._nombre  # Devuelve el nombre del usuario.
+        return self._nombre
 
-    @nombre.setter  # Permite cambiar el nombre desde fuera de la clase.
+    @nombre.setter
     def nombre(self, valor: str):
-        self._nombre = valor  # Actualiza el nombre con el nuevo valor.
+        self._nombre = valor
 
     @property
     def correo(self) -> str:
-        return self._correo  # Devuelve el correo del usuario.
+        return self._correo
 
     @correo.setter
     def correo(self, valor: str):
-        if "@" not in valor:  # Validación básica: todo correo debe tener un "@".
+        if "@" not in valor:
             raise ValueError("El correo no es válido.")
-        self._correo = valor  # Si el correo es válido, lo actualizamos.
+        self._correo = valor
 
     @property
     def telefono(self) -> int:
-        return self._telefono  # Devuelve el teléfono del usuario.
+        return self._telefono
 
     @telefono.setter
     def telefono(self, valor: int):
-        self._telefono = valor  # Actualiza el teléfono con el nuevo valor.
+        self._telefono = valor
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Paciente: puede pedir, cancelar y reagendar sus propias citas,
-# e interactuar con el sistema mediante Telegram.
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Paciente solo puede hacer cosas relacionadas con sus propias citas, además de interactuar con Telegram.
 class Paciente(Usuario):
+    """
+    Enunciado 3.2 — el paciente puede:
+    solicitar citas, cancelar horas, reagendar,
+    consultar disponibilidad e ingresar a listas de espera.
+    Puede tener múltiples citas activas simultáneamente.
+    """
+
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
-        super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
-        self._derivaciones_especialidades_permitidas: list[str] = []  # Lista de especialidades habilitadas por derivación médica.
-        # Si un médico activó una derivación, esta queda validada dentro de la lista para que el sistema pueda aprobar una hora en dicha especialidad.
-        self._citas: list[Cita] = []  # Lista de todas las citas del paciente (activas e historial).
+        super().__init__(RUN_usuario, nombre, correo, telefono)
+        self._citas: list[Cita] = []
 
-    @property
-    def derivaciones_especialidades_permitidas(self) -> list[str]:
-        return list(self._derivaciones_especialidades_permitidas)  # Devuelve una copia para no exponer la lista interna.
+    # ── Solicitar / cancelar / reagendar ─────────────────────────────────────
 
-    def agregar_derivacion(self, especialidad: str) -> None:
-        """Habilita al paciente para agendar en una especialidad gracias a una derivación."""
-        self._derivaciones_especialidades_permitidas.append(especialidad)  # Agrega la especialidad a la lista.
+    def solicitar_cita(
+        self,
+        medico: Medico,
+        inicio: datetime,
+        duracion_minutos: int = 30,
+        motivo: str = "",
+        ahora: Optional[datetime] = None,
+    ) -> Cita:
+        """Crea la cita, la registra en la agenda del médico y en el historial propio."""
+        cita = Cita.crear(
+            paciente_id=self.RUN_usuario,
+            medico_id=medico.RUN_usuario,
+            especialidad=medico.especialidad.nombre,
+            inicio=inicio,
+            duracion_minutos=duracion_minutos,
+            motivo=motivo,
+            ahora=ahora,
+        )
+        medico.agenda.agregar_cita(cita)
+        self._citas.append(cita)
+        return cita
+
+    def cancelar_cita(self, cita: Cita) -> None:
+        """El paciente cancela una de sus citas."""
+        cita.cancelar()
+
+    def reagendar_cita(
+        self,
+        cita: Cita,
+        medico: Medico,
+        nueva_inicio: datetime,
+        duracion_minutos: int = 30,
+        ahora: Optional[datetime] = None,
+    ) -> Cita:
+        """Reagenda una cita, registra la nueva en la agenda del médico y en el historial propio."""
+        nueva = cita.reagendar(nueva_inicio, duracion_minutos, ahora)
+        medico.agenda.agregar_cita(nueva)
+        self._citas.append(nueva)
+        return nueva
+
+    # ── Consultar disponibilidad ──────────────────────────────────────────────
+
+    def consultar_disponibilidad(self, medico: Medico, fecha: date) -> list[datetime]:
+        """Devuelve los slots libres del médico en una fecha."""
+        return medico.agenda.slots_disponibles(fecha)
+
+    # ── Lista de espera ───────────────────────────────────────────────────────
+
+    def inscribirse_en_lista_espera(
+        self,
+        lista: Lista_de_Espera,
+        prioridad: PrioridadEspera = PrioridadEspera.NORMAL,
+    ) -> bool:
+        """Ingresa al paciente a la lista de espera. Devuelve False si ya estaba."""
+        return lista.agregar_paciente_en_lista(self, prioridad)
+
+    # ── Historial ─────────────────────────────────────────────────────────────
 
     def registrar_cita(self, cita: Cita) -> None:
-        """Asocia una cita al historial del paciente."""
-        self._citas.append(cita)  # Agrega la cita a la lista interna del paciente.
+        """Vincula una cita al historial del paciente (usada por recepcionista/servicio)."""
+        self._citas.append(cita)
 
     def citas_activas(self) -> list[Cita]:
-        """Devuelve solo las citas que están en estado PENDIENTE o CONFIRMADA."""
-        return [c for c in self._citas if c.esta_activa]  # Filtra usando la propiedad esta_activa de Cita.
+        return [c for c in self._citas if c.esta_activa]
 
     def tiene_cita_en_especialidad(self, especialidad: str) -> bool:
-        """Devuelve True si el paciente ya tiene una cita activa en esa especialidad."""
-        return any(c.especialidad == especialidad for c in self.citas_activas())  # Busca en las citas activas.
+        return any(c.especialidad == especialidad for c in self.citas_activas())
 
     def historial_citas(self) -> list[Cita]:
-        """Devuelve todas las citas del paciente (activas, canceladas, completadas, etc.)."""
-        return list(self._citas)  # Devuelve una copia de la lista completa.
+        return list(self._citas)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Medico: gestiona su propia agenda, emite derivaciones y ve info de sus pacientes.
-# La Agenda vive DENTRO del Médico (composición).
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Médico solo puede hacer cosas relacionadas con su propia agenda, además de ver info de sus pacientes y derivaciones.
 class Medico(Usuario):
+    """
+    Enunciado 3.2 — el médico puede:
+    visualizar su agenda, bloquear horarios, suspender atención
+    y revisar información de sus pacientes y derivaciones.
+    """
+
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, especialidad: Especialidad):
-        super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
-        self._especialidad = especialidad          # Especialidad médica del médico.
-        self._agenda: Agenda = Agenda()            # Cada médico tiene su propia agenda (composición).
-        self._derivaciones_emitidas: list[Derivacion] = []  # Lista de derivaciones que ha emitido este médico.
+        super().__init__(RUN_usuario, nombre, correo, telefono)
+        self._especialidad = especialidad
+        self._agenda: Agenda = Agenda()
+        self._derivaciones_emitidas: list[Derivacion] = []
 
     @property
     def especialidad(self) -> Especialidad:
-        return self._especialidad  # Devuelve la especialidad del médico.
+        return self._especialidad
 
     @especialidad.setter
     def especialidad(self, valor: Especialidad):
-        self._especialidad = valor  # Permite cambiar la especialidad del médico.
+        self._especialidad = valor
 
     @property
     def agenda(self) -> Agenda:
-        return self._agenda  # Devuelve la agenda del médico para que otros la consulten.
+        return self._agenda
+
+    # ── Gestión de agenda ─────────────────────────────────────────────────────
 
     def bloquear_horario(self, inicio: datetime, fin: datetime, motivo: str = "") -> Bloqueo:
-        """El médico bloquea un intervalo de su agenda (sin cancelar citas existentes)."""
-        return self._agenda.bloquear(inicio, fin, motivo)  # Delega la operación a su Agenda.
+        return self._agenda.bloquear(inicio, fin, motivo)
 
     def suspender_agenda(self, inicio: datetime, fin: datetime, motivo: str = "") -> tuple[Suspension, list[Cita]]:
-        """El médico suspende toda su agenda en un período; cancela las citas activas afectadas."""
-        return self._agenda.suspender(inicio, fin, motivo)  # Delega a la Agenda; devuelve las citas canceladas.
+        return self._agenda.suspender(inicio, fin, motivo)
 
-    def registrar_derivacion(self, derivacion: Derivacion) -> None:
-        """Guarda en el historial del médico una derivación que él emitió."""
-        self._derivaciones_emitidas.append(derivacion)  # Agrega la derivación a su lista.
+    # ── Derivaciones ──────────────────────────────────────────────────────────
+
+    def emitir_derivacion(
+        self,
+        paciente_id: int,
+        especialidad_destino: str,
+        motivo: str,
+        dias_vigencia: int = DIAS_VIGENCIA_DEFAULT,
+        medico_destino_id: Optional[int] = None,
+        notas: Optional[str] = None,
+        ahora: Optional[datetime] = None,
+    ) -> Derivacion:
+        """El médico activa la derivación (enunciado 3.1.4)."""
+        derivacion = Derivacion.crear(
+            paciente_id=paciente_id,
+            medico_origen_id=self.RUN_usuario,
+            especialidad_destino=especialidad_destino,
+            motivo=motivo,
+            dias_vigencia=dias_vigencia,
+            medico_destino_id=medico_destino_id,
+            notas=notas,
+            ahora=ahora,
+        )
+        self._derivaciones_emitidas.append(derivacion)
+        return derivacion
 
     def derivaciones_vigentes(self) -> list[Derivacion]:
-        """Devuelve las derivaciones que aún están activas (PENDIENTE o ACEPTADA)."""
-        return [d for d in self._derivaciones_emitidas if d.esta_activa]  # Filtra por estado activo.
+        return [d for d in self._derivaciones_emitidas if d.esta_activa]
 
     def historial_derivaciones(self) -> list[Derivacion]:
-        """Devuelve todas las derivaciones que el médico ha emitido (activas y cerradas)."""
-        return list(self._derivaciones_emitidas)  # Devuelve una copia de la lista completa.
+        return list(self._derivaciones_emitidas)
 
     def __eq__(self, otro: object) -> bool:
         if not isinstance(otro, Medico):
@@ -161,88 +214,71 @@ class Medico(Usuario):
         return hash(self.RUN_usuario)
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Recepcionista: gestiona citas de los pacientes y agendas de los médicos
-# de la clínica en la que trabaja.
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes.
-# Pueden gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
 class Recepcionista(Usuario):
+    """
+    Enunciado 3.2 — la recepcionista puede:
+    gestionar citas, reagendar pacientes, administrar listas de espera
+    y visualizar agendas clínicas.
+    """
+
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, clinica: Clinica):
-        super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
-        self._clinica = clinica  # La clínica en la que trabaja este/a recepcionista.
-        # El/La recepcionista trabaja en una clínica específica (Enunciado especifica "Administrar clínicas").
-        # Útil si por ejemplo hay distintas sucursales.
+        super().__init__(RUN_usuario, nombre, correo, telefono)
+        self._clinica = clinica
 
     @property
     def clinica(self) -> Clinica:
-        return self._clinica  # Devuelve la clínica a la que pertenece.
+        return self._clinica
 
     @clinica.setter
     def clinica(self, valor: Clinica):
-        self._clinica = valor  # Permite cambiar la clínica (ej: traslado de sucursal).
+        self._clinica = valor
 
     # ── Gestión de citas ──────────────────────────────────────────────────────
 
     def confirmar_cita(self, cita: Cita) -> None:
-        """La recepcionista confirma una cita: cambia su estado de PENDIENTE a CONFIRMADA."""
-        cita.confirmar()  # Delega la operación al método confirmar() de la Cita.
+        cita.confirmar()
 
     def cancelar_cita(self, cita: Cita) -> None:
-        """La recepcionista cancela una cita: cambia su estado a CANCELADA."""
-        cita.cancelar()  # Delega al método cancelar() de la Cita.
+        cita.cancelar()
 
     def marcar_no_asistio(self, cita: Cita) -> None:
-        """Registra que el paciente no se presentó: cambia el estado a NO_ASISTIO."""
-        cita.marcar_no_asistio()  # Delega al método marcar_no_asistio() de la Cita.
+        cita.marcar_no_asistio()
 
     def reagendar_cita(
         self,
-        cita: Cita,                        # La cita original que se quiere reagendar.
-        medico: Medico,                    # El médico dueño de la agenda.
-        nueva_inicio: datetime,            # Nueva fecha y hora propuesta.
-        duracion_minutos: int = 30,        # Duración de la nueva cita (30 min por defecto).
-        ahora: datetime | None = None,     # Hora de referencia (útil para tests).
+        cita: Cita,
+        medico: Medico,
+        nueva_inicio: datetime,
+        duracion_minutos: int = 30,
+        ahora: datetime | None = None,
     ) -> Cita:
-        """Reagenda la cita y registra la nueva en la agenda del médico."""
-        nueva = cita.reagendar(nueva_inicio, duracion_minutos, ahora)  # Crea la nueva cita.
-        medico.agenda.agregar_cita(nueva)  # La agrega a la agenda del médico con todas sus validaciones.
-        return nueva  # Devuelve la nueva cita para que el sistema la pueda usar.
+        nueva = cita.reagendar(nueva_inicio, duracion_minutos, ahora)
+        medico.agenda.agregar_cita(nueva)
+        return nueva
 
     # ── Visualización de agendas ──────────────────────────────────────────────
 
     def ver_agenda_medico(self, medico: Medico, fecha: date) -> list[Cita]:
-        """Devuelve todas las citas de un médico en una fecha específica."""
-        return medico.agenda.citas_del_dia(fecha)  # Delega a la Agenda del médico.
+        return medico.agenda.citas_del_dia(fecha)
 
     def slots_disponibles_medico(self, medico: Medico, fecha: date) -> list[datetime]:
-        """Devuelve la lista de horarios disponibles de un médico en una fecha."""
-        return medico.agenda.slots_disponibles(fecha)  # Delega a la Agenda del médico.
+        return medico.agenda.slots_disponibles(fecha)
 
     # ── Listas de espera ──────────────────────────────────────────────────────
 
     def agregar_a_lista_espera(self, lista: Lista_de_Espera, paciente: Paciente) -> bool:
-        """Inscribe al paciente en la lista de espera. Devuelve False si ya estaba."""
-        return lista.agregar_paciente_en_lista(paciente)  # Delega a la Lista_de_Espera.
+        return lista.agregar_paciente_en_lista(paciente)
 
     def extraer_de_lista_espera(self, lista: Lista_de_Espera) -> Paciente | None:
-        """Saca al paciente con más tiempo esperando de la lista. Devuelve None si está vacía."""
-        return lista.extraer_paciente_de_lista()  # Delega a la Lista_de_Espera.
+        return lista.extraer_paciente_de_lista()
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Administrador: acceso completo a todo el sistema.
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Administrador(a) tiene acceso completo al sistema.
 class Administrador(Usuario):
-    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
-        super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
-        self.__acceso_vip = True  # Atributo privado que marca el acceso total al sistema.
-        # Acceso total para administrar, configurar y visualizar todo el sistema.
-        # ESTA ÚLTIMA VARIABLE SERÁ ÚTIL EN EL FUTURO PARA DARLE AL ADMINISTRADOR LOS PERMISOS CORRESPONDIENTES.
+    """
+    Enunciado 3.2 — acceso completo al sistema:
+    usuarios, especialidades, agendas y configuración global.
+    La lógica de administración se implementa en la capa de servicios.
+    """
 
-    @property
-    def acceso_vip(self) -> bool:
-        return self.__acceso_vip  # Devuelve True siempre (el administrador siempre tiene acceso total).
+    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
+        super().__init__(RUN_usuario, nombre, correo, telefono)
