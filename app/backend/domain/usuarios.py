@@ -161,18 +161,18 @@ class Medico(Usuario):
 # Recepcionista puede hacer cosas relacionadas con las agendas de los médicos de su clínica y las citas de los pacientes.
 # Pueden gestionar citas, reagendar pacientes, administrar listas de espera y visualizar agendas clínicas.
 class Recepcionista(Usuario):
-    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, clinica):
+    def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int, clinica: Clinica):
         super().__init__(RUN_usuario, nombre, correo, telefono)  # Llama al __init__ de Usuario.
         self._clinica = clinica  # La clínica en la que trabaja este/a recepcionista.
         # El/La recepcionista trabaja en una clínica específica (Enunciado especifica "Administrar clínicas").
         # Útil si por ejemplo hay distintas sucursales.
 
     @property
-    def clinica(self):
+    def clinica(self) -> Clinica:
         return self._clinica  # Devuelve la clínica a la que pertenece.
 
     @clinica.setter
-    def clinica(self, valor):
+    def clinica(self, valor: Clinica):
         self._clinica = valor  # Permite cambiar la clínica (ej: traslado de sucursal).
 
     # ── Gestión de citas ──────────────────────────────────────────────────────
