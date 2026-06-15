@@ -90,3 +90,9 @@ Los métodos deben ser:
 ## `app/backend/core/config.py` — Configuración centralizada de la aplicación
 
 **Prompt:** Implementa `config.py` en el módulo `core` para centralizar toda la configuración de la aplicación a partir de variables de entorno, usando `pydantic-settings`. Define una clase `Settings(BaseSettings)` con `model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore")` para leer el `.env` sin fallar ante variables no usadas. Incluye los atributos, agrupados por sección y con valores por defecto razonables: aplicación (`app_name`, `environment`, `debug`), base de datos (`database_url` apuntando a PostgreSQL vía `postgresql+psycopg2`), seguridad (`secret_key`, `access_token_expire_minutes`), Telegram (`telegram_bot_token`) y LLM (`openai_api_key`, `llm_model`). Los nombres deben coincidir con las variables de `.env.example`. Agrega una propiedad `is_production` que compare `environment` con `"production"`. Expón una función `get_settings()` decorada con `@lru_cache` para construir la configuración una sola vez, y una instancia `settings` lista para importar. Mantén el estilo de comentarios didácticos del resto del proyecto.
+
+---
+
+## `app/backend/core/database.py` — Motor, sesiones y base declarativa
+
+**Prompt:** Implementa `database.py` en el módulo `core` como base técnica de la persistencia, usando SQLAlchemy 2.0 y la configuración de `config.py`. Crea un `engine` con `create_engine(settings.database_url, pool_pre_ping=True, echo=settings.debug)`. Define `SessionLocal` con `sessionmaker(bind=engine, autoflush=False, autocommit=False)`. Define una clase `Base(DeclarativeBase)` de la que heredarán todos los modelos ORM. Implementa una dependencia `get_db()` como generador que entrega una sesión mediante `yield` y la cierra en un bloque `finally`, con tipo de retorno `Iterator[Session]`. Mantén el estilo de comentarios didácticos del resto del proyecto.
