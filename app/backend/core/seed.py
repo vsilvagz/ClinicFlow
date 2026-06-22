@@ -23,10 +23,17 @@ from sqlalchemy.orm import Session
 from app.backend.repositories.especialidades import RepositorioEspecialidades
 from app.backend.schemas.agendas import AgendaCrear, BloqueHorarioCrear
 from app.backend.schemas.especialidades import EspecialidadCrear
-from app.backend.schemas.usuarios import MedicoCrear, PacienteCrear
+from app.backend.schemas.usuarios import AdministradorCrear, MedicoCrear, PacienteCrear
 from app.backend.services.agendas_service import agregar_horario, crear_agenda
 from app.backend.services.especialidades_service import crear_especialidad
-from app.backend.services.usuarios_service import crear_medico, crear_paciente
+from app.backend.services.usuarios_service import (
+    crear_administrador,
+    crear_medico,
+    crear_paciente,
+)
+
+# Contraseña por defecto de todos los usuarios sembrados (solo para la demo).
+_PASSWORD_DEMO = "demo1234"
 
 # Atención de lunes (0) a viernes (4) en horario continuo de 08:00 a 20:00. Una
 # sola franja por día (sin corte de almuerzo), de modo que siempre haya cupos en
@@ -54,20 +61,20 @@ _ESPECIALIDADES = [
 
 # (run, nombre, especialidad). El correo y el teléfono se generan automáticamente.
 _MEDICOS = [
-    (11000001, "Dra. Ana Rojas", "Cardiología"),
-    (11000002, "Dr. Marcos Vidal", "Cardiología"),
-    (11000003, "Dr. Luis Pérez", "Pediatría"),
-    (11000004, "Dra. Camila Fuentes", "Pediatría"),
-    (11000005, "Dra. Carla Núñez", "Medicina General"),
-    (11000006, "Dr. Felipe Soto", "Medicina General"),
-    (11000007, "Dra. Valentina Reyes", "Dermatología"),
-    (11000008, "Dr. Tomás Herrera", "Traumatología"),
-    (11000009, "Dra. Josefa Morales", "Traumatología"),
-    (11000010, "Dra. Paula Castro", "Ginecología"),
-    (11000011, "Dr. Andrés Lagos", "Oftalmología"),
-    (11000012, "Dra. Daniela Silva", "Neurología"),
-    (11000013, "Dr. Rodrigo Tapia", "Psiquiatría"),
-    (11000014, "Dra. Francisca Díaz", "Otorrinolaringología"),
+    (11000001, "Ana Rojas", "Cardiología"),
+    (11000002, "Marcos Vidal", "Cardiología"),
+    (11000003, "Luis Pérez", "Pediatría"),
+    (11000004, "Camila Fuentes", "Pediatría"),
+    (11000005, "Carla Núñez", "Medicina General"),
+    (11000006, "Felipe Soto", "Medicina General"),
+    (11000007, "Valentina Reyes", "Dermatología"),
+    (11000008, "Tomás Herrera", "Traumatología"),
+    (11000009, "Josefa Morales", "Traumatología"),
+    (11000010, "Paula Castro", "Ginecología"),
+    (11000011, "Andrés Lagos", "Oftalmología"),
+    (11000012, "Daniela Silva", "Neurología"),
+    (11000013, "Rodrigo Tapia", "Psiquiatría"),
+    (11000014, "Francisca Díaz", "Otorrinolaringología"),
 ]
 
 # (run, nombre)
@@ -134,6 +141,7 @@ def sembrar_datos_demo(db: Session) -> bool:
                 correo=_correo(nombre, "clinicflow.cl"),
                 telefono=920000000 + i,
                 especialidad_id=id_por_especialidad[especialidad],
+                password=_PASSWORD_DEMO,
             ),
         )
 
@@ -146,7 +154,20 @@ def sembrar_datos_demo(db: Session) -> bool:
                 nombre=nombre,
                 correo=_correo(nombre, "example.cl"),
                 telefono=930000000 + i,
+                password=_PASSWORD_DEMO,
             ),
         )
+
+    # 4) Un administrador para acceder al portal de gestión.
+    crear_administrador(
+        db,
+        AdministradorCrear(
+            run_usuario=10000000,
+            nombre="Administrador",
+            correo="admin@clinicflow.cl",
+            telefono=910000000,
+            password=_PASSWORD_DEMO,
+        ),
+    )
 
     return True
