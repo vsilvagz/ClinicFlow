@@ -1,7 +1,7 @@
 """Carga de datos de ejemplo (seed) al arrancar la aplicación.
 
 El objetivo es que, al levantar el contenedor por primera vez, la base de datos
-ya tenga datos usables: especialidades, médicos con agenda y horarios, y algunos
+ya tenga datos usables: especialidades, médicos con agenda y horarios, y varios
 pacientes. Así se puede demostrar el flujo completo (un paciente toma una hora)
 sin tener que poblar nada a mano.
 
@@ -9,9 +9,10 @@ Decisiones de diseño:
 
 - **Idempotente**: si ya existen especialidades, se asume que la BD está poblada
   y no se hace nada. Levantar la app muchas veces no duplica datos.
-- **Reutiliza los servicios** (`crear_especialidad`, `crear_medico`,
-  `crear_agenda`, …) en lugar de insertar filas a mano. Así las reglas de negocio
-  y validaciones viven en un solo lugar y el seed prueba, de paso, esos casos de uso.
+- **Dirigido por datos**: las entidades a crear se declaran en listas al inicio y
+  un par de bucles las insertan, reutilizando los servicios (`crear_especialidad`,
+  `crear_medico`, …). Así las reglas de negocio viven en un solo lugar y agregar
+  datos nuevos es solo editar las listas.
 - **Sólo para desarrollo/demo**: se controla con el flag `settings.seed_demo`.
 """
 
@@ -31,24 +32,81 @@ from app.backend.services.usuarios_service import crear_medico, crear_paciente
 # sola franja por día (sin corte de almuerzo), de modo que siempre haya cupos en
 # días hábiles.
 _DIAS_HABILES = range(0, 5)  # 0=lunes … 4=viernes
-_FRANJAS = [
-    (time(8, 0), time(20, 0)),
+_FRANJA = (time(8, 0), time(20, 0))
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Datos a sembrar. Editar estas listas para agregar más.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# (nombre, descripción)
+_ESPECIALIDADES = [
+    ("Medicina General", "Atención de primer nivel y derivaciones."),
+    ("Cardiología", "Diagnóstico y tratamiento del corazón."),
+    ("Pediatría", "Atención de niños y adolescentes."),
+    ("Dermatología", "Enfermedades de la piel."),
+    ("Traumatología", "Lesiones de huesos, músculos y articulaciones."),
+    ("Ginecología", "Salud femenina y control prenatal."),
+    ("Oftalmología", "Salud visual y enfermedades del ojo."),
+    ("Neurología", "Trastornos del sistema nervioso."),
+    ("Psiquiatría", "Salud mental y trastornos del ánimo."),
+    ("Otorrinolaringología", "Oído, nariz y garganta."),
+]
+
+# (run, nombre, especialidad). El correo y el teléfono se generan automáticamente.
+_MEDICOS = [
+    (11000001, "Dra. Ana Rojas", "Cardiología"),
+    (11000002, "Dr. Marcos Vidal", "Cardiología"),
+    (11000003, "Dr. Luis Pérez", "Pediatría"),
+    (11000004, "Dra. Camila Fuentes", "Pediatría"),
+    (11000005, "Dra. Carla Núñez", "Medicina General"),
+    (11000006, "Dr. Felipe Soto", "Medicina General"),
+    (11000007, "Dra. Valentina Reyes", "Dermatología"),
+    (11000008, "Dr. Tomás Herrera", "Traumatología"),
+    (11000009, "Dra. Josefa Morales", "Traumatología"),
+    (11000010, "Dra. Paula Castro", "Ginecología"),
+    (11000011, "Dr. Andrés Lagos", "Oftalmología"),
+    (11000012, "Dra. Daniela Silva", "Neurología"),
+    (11000013, "Dr. Rodrigo Tapia", "Psiquiatría"),
+    (11000014, "Dra. Francisca Díaz", "Otorrinolaringología"),
+]
+
+# (run, nombre)
+_PACIENTES = [
+    (44444444, "Pedro Soto"),
+    (55555555, "María González"),
+    (16000001, "Javiera Muñoz"),
+    (16000002, "Diego Araya"),
+    (16000003, "Catalina Rivas"),
+    (16000004, "Sebastián Vera"),
+    (16000005, "Antonia Pizarro"),
+    (16000006, "Matías Cáceres"),
 ]
 
 
-def _sembrar_medico_con_agenda(
-    db: Session, datos: MedicoCrear, franjas=_FRANJAS
-) -> None:
+def _correo(nombre: str, dominio: str) -> str:
+    """Genera un correo simple a partir del nombre (sin tildes ni títulos)."""
+    base = (
+        nombre.lower()
+        .replace("dra. ", "")
+        .replace("dr. ", "")
+        .replace("á", "a").replace("é", "e").replace("í", "i")
+        .replace("ó", "o").replace("ú", "u").replace("ñ", "n")
+        .replace(" ", ".")
+    )
+    return f"{base}@{dominio}"
+
+
+def _sembrar_medico_con_agenda(db: Session, datos: MedicoCrear) -> None:
     """Crea un médico, su agenda y los horarios recurrentes de atención."""
     medico = crear_medico(db, datos)
     agenda = crear_agenda(db, AgendaCrear(medico_run=medico.run_usuario))
+    inicio, fin = _FRANJA
     for dia in _DIAS_HABILES:
-        for inicio, fin in franjas:
-            agregar_horario(
-                db,
-                agenda.id,
-                BloqueHorarioCrear(dia_semana=dia, hora_inicio=inicio, hora_fin=fin),
-            )
+        agregar_horario(
+            db,
+            agenda.id,
+            BloqueHorarioCrear(dia_semana=dia, hora_inicio=inicio, hora_fin=fin),
+        )
 
 
 def sembrar_datos_demo(db: Session) -> bool:
@@ -60,70 +118,35 @@ def sembrar_datos_demo(db: Session) -> bool:
     if RepositorioEspecialidades(db).listar():
         return False
 
-    # 1) Especialidades.
-    cardiologia = crear_especialidad(
-        db, EspecialidadCrear(nombre="Cardiología", descripcion="Salud del corazón.")
-    )
-    pediatria = crear_especialidad(
-        db, EspecialidadCrear(nombre="Pediatría", descripcion="Atención infantil.")
-    )
-    general = crear_especialidad(
-        db,
-        EspecialidadCrear(
-            nombre="Medicina General", descripcion="Atención de primer nivel."
-        ),
-    )
+    # 1) Especialidades (guardamos el id por nombre para asignarlo a los médicos).
+    id_por_especialidad: dict[str, int] = {}
+    for nombre, descripcion in _ESPECIALIDADES:
+        esp = crear_especialidad(db, EspecialidadCrear(nombre=nombre, descripcion=descripcion))
+        id_por_especialidad[nombre] = esp.id
 
     # 2) Médicos con agenda y horarios.
-    _sembrar_medico_con_agenda(
-        db,
-        MedicoCrear(
-            run_usuario=11111111,
-            nombre="Dra. Ana Rojas",
-            correo="ana.rojas@clinicflow.cl",
-            telefono=912345678,
-            especialidad_id=cardiologia.id,
-        ),
-    )
-    _sembrar_medico_con_agenda(
-        db,
-        MedicoCrear(
-            run_usuario=22222222,
-            nombre="Dr. Luis Pérez",
-            correo="luis.perez@clinicflow.cl",
-            telefono=912345679,
-            especialidad_id=pediatria.id,
-        ),
-    )
-    _sembrar_medico_con_agenda(
-        db,
-        MedicoCrear(
-            run_usuario=33333333,
-            nombre="Dra. Carla Núñez",
-            correo="carla.nunez@clinicflow.cl",
-            telefono=912345680,
-            especialidad_id=general.id,
-        ),
-    )
+    for i, (run, nombre, especialidad) in enumerate(_MEDICOS):
+        _sembrar_medico_con_agenda(
+            db,
+            MedicoCrear(
+                run_usuario=run,
+                nombre=nombre,
+                correo=_correo(nombre, "clinicflow.cl"),
+                telefono=920000000 + i,
+                especialidad_id=id_por_especialidad[especialidad],
+            ),
+        )
 
     # 3) Pacientes de ejemplo.
-    crear_paciente(
-        db,
-        PacienteCrear(
-            run_usuario=44444444,
-            nombre="Pedro Soto",
-            correo="pedro.soto@example.cl",
-            telefono=987654321,
-        ),
-    )
-    crear_paciente(
-        db,
-        PacienteCrear(
-            run_usuario=55555555,
-            nombre="María González",
-            correo="maria.gonzalez@example.cl",
-            telefono=987654322,
-        ),
-    )
+    for i, (run, nombre) in enumerate(_PACIENTES):
+        crear_paciente(
+            db,
+            PacienteCrear(
+                run_usuario=run,
+                nombre=nombre,
+                correo=_correo(nombre, "example.cl"),
+                telefono=930000000 + i,
+            ),
+        )
 
     return True
