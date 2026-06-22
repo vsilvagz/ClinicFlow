@@ -145,3 +145,9 @@ Implementa `main.py` que ensamble la app: crea `app = FastAPI(title=settings.app
 - **Agendas:** añade al dominio `Agenda` un método `cargar_citas(citas)` que incorpore citas ya validadas sin re-validar. Escribe `_a_dominio(db, orm)` que rehidrate la `Agenda` cargando horarios, bloqueos, suspensiones y las citas activas del médico (búscalas por RUN, no por la FK de la cita). Escribe `crear_agenda`, `agregar_horario`, `bloquear_horario`, `suspender_agenda` (cancela las citas activas del período con `Cita.cancelar` y las devuelve), `consultar_disponibilidad` y `slots_disponibles`.
 - **Derivaciones:** con helpers `_a_dominio`/`_a_orm`, escribe `emitir_derivacion` (usa `Derivacion.crear`), `completar_derivacion`, `expirar_vencidas` y los listados.
 - **Lista de espera:** reutiliza `_PESO_PRIORIDAD` del dominio para ordenar. Escribe `obtener_o_crear_lista`, `inscribir_paciente` (evita duplicados), `siguiente_en_espera`, `asignar_siguiente_cupo` (retira al de mayor prioridad) y `retirar_paciente`.
+
+---
+
+## `app/backend/core/seed.py` — Datos de ejemplo al arrancar
+
+**Prompt:** Crea un seed idempotente que, al levantar la app, pueble la BD con datos demo (especialidades, médicos con agenda y horarios continuos lun–vie 08:00–20:00, y pacientes) reutilizando los servicios existentes. Si ya hay datos no debe hacer nada. Controla su ejecución con un flag `seed_demo` en `config.py` e invócalo desde el `lifespan` de `main.py`.

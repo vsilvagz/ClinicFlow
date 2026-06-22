@@ -29,7 +29,8 @@ from app.backend.api.routes import especialidades, health
 # FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
 from app.backend.api.templates import FRONTEND_DIR, templates
 from app.backend.core.config import settings
-from app.backend.core.database import Base, engine
+from app.backend.core.database import Base, SessionLocal, engine
+from app.backend.core.seed import sembrar_datos_demo
 
 # ──────────────────────────────────────────────────────────────────────────────
 # lifespan: se ejecuta UNA vez al levantar la app y otra al apagarla.
@@ -41,6 +42,13 @@ from app.backend.core.database import Base, engine
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # Poblamos datos de ejemplo (idempotente: no hace nada si la BD ya tiene datos).
+    if settings.seed_demo:
+        db = SessionLocal()
+        try:
+            sembrar_datos_demo(db)
+        finally:
+            db.close()
     yield
     # (Al apagar no hay recursos extra que liberar por ahora.)
 

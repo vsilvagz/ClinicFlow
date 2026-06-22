@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     app_name: str = "ClinicFlow"        # Nombre de la app (se muestra en la API).
     environment: str = "development"    # development | production.
     debug: bool = True                  # Modo depuración: logs y mensajes extra.
+    seed_demo: bool = True              # Si True, puebla la BD con datos de ejemplo al arrancar.
 
     # ---- Base de datos ----
     # URL de conexión a PostgreSQL. Formato:
