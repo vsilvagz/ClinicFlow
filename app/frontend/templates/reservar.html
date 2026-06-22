@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reservar hora — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--ok:#0F7A52;--err:#B42318;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:880px;margin:0 auto;padding:0 28px}
+
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-.03em}
+        .sub{color:var(--muted);font-size:15.5px;margin-top:6px}
+
+        .banner{margin:24px 0 0;padding:13px 16px;border-radius:12px;font-size:14.5px;font-weight:600;border:1px solid}
+        .banner.ok{background:#E9F7F0;color:var(--ok);border-color:#BfE6D4}
+        .banner.err{background:#FDECEA;color:var(--err);border-color:#F5C6C2}
+
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:24px}
+        .card h2{font-size:18px;font-weight:700;margin-bottom:6px}
+        .card .lead{color:var(--muted);font-size:14px;margin-bottom:16px}
+        form{display:flex;flex-direction:column;gap:14px}
+        .row{display:flex;gap:14px;flex-wrap:wrap}
+        .row > div{flex:1;min-width:200px}
+        label{font-size:13.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:6px}
+        select,input[type=date],input[type=text],input[type=email]{
+            width:100%;font:inherit;font-size:15px;padding:11px 13px;border:1px solid var(--border);
+            border-radius:11px;background:#FBFCFD;color:var(--ink);
+        }
+        select:focus,input:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+        .btn{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;border-radius:11px;padding:11px 20px;border:1px solid transparent;cursor:pointer;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.28)}
+        .btn:hover{background:var(--primary-dark)}
+        .btn.ghost{background:var(--surface);color:var(--ink);border-color:var(--border);box-shadow:none}
+        .btn.ghost:hover{border-color:#D4DAE3;background:#FBFCFD}
+
+        .who{display:flex;align-items:center;gap:12px;background:#F4F8FF;border:1px solid #DCE8FF;border-radius:12px;padding:12px 16px;margin-top:24px}
+        .who .av{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+        .who .name{font-weight:700;font-size:15px}
+        .who .run{color:var(--muted);font-size:13px}
+        .who .change{margin-left:auto;font-size:13.5px;font-weight:700;color:var(--primary)}
+
+        .slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+        .slot{position:relative}
+        .slot input{position:absolute;opacity:0;inset:0;cursor:pointer}
+        .slot span{display:block;text-align:center;padding:11px 0;border:1px solid var(--border);border-radius:11px;background:#FBFCFD;font-size:14.5px;font-weight:600;color:var(--ink-2);cursor:pointer}
+        .slot input:checked + span{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.28)}
+        .empty{color:var(--muted);font-size:14.5px;padding:8px 0}
+        .hint{color:var(--muted);font-size:13.5px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/">Inicio</a>
+            <a class="link" href="/docs">API</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <h1>Reservar hora</h1>
+            <p class="sub">Ingresa tu RUT para comenzar a agendar.</p>
+
+            {% if creada %}
+                <div class="banner ok">¡Hora reservada correctamente!</div>
+            {% elif error == "nodisponible" %}
+                <div class="banner err">Esa hora ya no está disponible. Elige otra.</div>
+            {% elif error == "usuario" %}
+                <div class="banner err">No se pudo identificar al paciente o al médico.</div>
+            {% elif error == "run" %}
+                <div class="banner err">El RUT ingresado no es válido.</div>
+            {% elif error == "ocupado" %}
+                <div class="banner err">Ese RUT ya está registrado con otro tipo de usuario.</div>
+            {% elif error == "invalido" %}
+                <div class="banner err">Revisa los datos ingresados.</div>
+            {% endif %}
+
+            {% if not paciente and not registrar %}
+            <!-- Paso 1: identificación por RUT -->
+            <div class="card">
+                <h2>Identifícate</h2>
+                <p class="lead">Ingresa tu RUT (sin dígito verificador).</p>
+                <form method="post" action="/reservar/identificar">
+                    <div>
+                        <label for="run">RUT</label>
+                        <input type="text" id="run" name="run" placeholder="Ej. 12345678" required />
+                    </div>
+                    <button class="btn" type="submit">Continuar</button>
+                </form>
+            </div>
+
+            {% elif registrar %}
+            <!-- Paso 1b: registro de paciente nuevo -->
+            <div class="card">
+                <h2>Regístrate</h2>
+                <p class="lead">No encontramos el RUT <strong>{{ registrar }}</strong>. Completa tus datos para registrarte.</p>
+                <form method="post" action="/reservar/registrar">
+                    <input type="hidden" name="run" value="{{ registrar }}" />
+                    <div>
+                        <label for="nombre">Nombre completo</label>
+                        <input type="text" id="nombre" name="nombre" maxlength="150" required />
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label for="correo">Correo</label>
+                            <input type="email" id="correo" name="correo" required />
+                        </div>
+                        <div>
+                            <label for="telefono">Teléfono</label>
+                            <input type="text" id="telefono" name="telefono" placeholder="Ej. 912345678" required />
+                        </div>
+                    </div>
+                    <button class="btn" type="submit">Registrarme y continuar</button>
+                </form>
+            </div>
+
+            {% else %}
+            <!-- Paciente identificado -->
+            <div class="who">
+                <div class="av">{{ paciente.nombre[0]|upper }}</div>
+                <div>
+                    <div class="name">{{ paciente.nombre }}</div>
+                    <div class="run">RUT {{ paciente.run_usuario }}</div>
+                </div>
+                <a class="change" href="/reservar">Cambiar</a>
+            </div>
+
+            <!-- Paso 2: elegir médico y fecha -->
+            <div class="card">
+                <h2>Médico y fecha</h2>
+                <p class="lead">Elige con quién y qué día quieres atenderte.</p>
+                <form method="get" action="/reservar">
+                    <input type="hidden" name="paciente_run" value="{{ paciente.run_usuario }}" />
+                    <div class="row">
+                        <div>
+                            <label for="medico_run">Médico</label>
+                            <select id="medico_run" name="medico_run" required>
+                                <option value="" disabled {% if medico_run is none %}selected{% endif %}>Selecciona un médico…</option>
+                                {% for m in medicos %}
+                                    <option value="{{ m.run_usuario }}" {% if m.run_usuario == medico_run %}selected{% endif %}>
+                                        {{ m.nombre }}{% if m.especialidad %} — {{ m.especialidad.nombre }}{% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="fecha">Fecha</label>
+                            <input type="date" id="fecha" name="fecha" value="{{ fecha }}" required />
+                        </div>
+                    </div>
+                    <button class="btn ghost" type="submit">Ver disponibilidad</button>
+                </form>
+            </div>
+
+            <!-- Paso 3: elegir hora -->
+            {% if medico_run is not none %}
+            <div class="card">
+                <h2>Hora disponible</h2>
+                {% if slots %}
+                    <p class="lead">{{ slots|length }} cupos disponibles para el {{ fecha }}.</p>
+                    <form method="post" action="/reservar">
+                        <input type="hidden" name="paciente_run" value="{{ paciente.run_usuario }}" />
+                        <input type="hidden" name="medico_run" value="{{ medico_run }}" />
+                        <div>
+                            <label for="motivo">Motivo (opcional)</label>
+                            <input type="text" id="motivo" name="motivo" maxlength="300" placeholder="Ej. Control anual" />
+                        </div>
+                        <div>
+                            <label>Elige una hora</label>
+                            <div class="slots">
+                                {% for s in slots %}
+                                    <label class="slot">
+                                        <input type="radio" name="inicio" value="{{ s.isoformat() }}" required />
+                                        <span>{{ s.strftime("%H:%M") }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <button class="btn" type="submit">Reservar hora</button>
+                    </form>
+                {% else %}
+                    <p class="empty">No hay horas disponibles para ese médico en la fecha elegida. Prueba con otro día.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

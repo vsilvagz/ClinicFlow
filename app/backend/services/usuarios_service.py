@@ -109,6 +109,15 @@ def listar_medicos(db: Session) -> list[MedicoORM]:
     return RepositorioUsuarios(db).listar_medicos()
 
 
+def listar_pacientes(db: Session) -> list[PacienteORM]:
+    return RepositorioUsuarios(db).listar_pacientes()
+
+
+def obtener_paciente(db: Session, run: int) -> PacienteORM | None:
+    """Devuelve el paciente con ese RUN, o None si no está registrado."""
+    return RepositorioUsuarios(db).obtener_paciente(run)
+
+
 def obtener_medico(db: Session, run: int) -> MedicoORM:
     medico = RepositorioUsuarios(db).obtener_medico(run)
     if medico is None:

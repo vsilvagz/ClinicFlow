@@ -188,3 +188,17 @@ def slots_disponibles(db: Session, agenda_id: int, fecha: date) -> list[datetime
     """Lista las horas libres de la agenda en una fecha."""
     agenda = _a_dominio(db, _obtener_o_error(db, agenda_id))
     return agenda.slots_disponibles(fecha)
+
+
+def slots_disponibles_de_medico(
+    db: Session, medico_run: int, fecha: date
+) -> list[datetime]:
+    """Lista las horas libres de un médico en una fecha (vía su agenda).
+
+    Devuelve [] si el médico no tiene agenda configurada. Pensado para la página
+    de reserva, que parte del médico y no del id de agenda.
+    """
+    agenda = RepositorioAgendas(db).obtener_por_medico(medico_run)
+    if agenda is None:
+        return []
+    return _a_dominio(db, agenda).slots_disponibles(fecha)

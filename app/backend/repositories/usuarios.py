@@ -30,3 +30,7 @@ class RepositorioUsuarios(RepositorioBase[UsuarioORM]):
     def listar_medicos(self) -> list[MedicoORM]:
         """Lista todos los médicos registrados."""
         return list(self.db.scalars(select(MedicoORM)))
+
+    def listar_pacientes(self) -> list[PacienteORM]:
+        """Lista todos los pacientes registrados."""
+        return list(self.db.scalars(select(PacienteORM)))
