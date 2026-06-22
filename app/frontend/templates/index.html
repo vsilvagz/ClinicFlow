@@ -3,24 +3,287 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ app_name }}</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <title>{{ app_name }} — Gestión clínica conversacional</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;
+            --surface:#FFFFFF;
+            --ink:#10151F;
+            --ink-2:#4B5563;
+            --muted:#7C8696;
+            --border:#ECEFF3;
+            --primary:#2563EB;
+            --primary-dark:#1D4ED8;
+            --primary-soft:#EAF0FF;
+            --navy:#0E2A66;
+            --ok:#0F7A52;
+            --radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        html{scroll-behavior:smooth}
+        body{
+            font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;
+            background:var(--bg);
+            color:var(--ink);
+            -webkit-font-smoothing:antialiased;
+            line-height:1.5;
+        }
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+
+        /* ---------- Top bar ---------- */
+        header{
+            position:sticky;top:0;z-index:30;
+            background:rgba(255,255,255,.86);
+            backdrop-filter:blur(10px);
+            border-bottom:1px solid var(--border);
+        }
+        .nav{height:66px;display:flex;align-items:center;gap:28px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{
+            width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;
+            box-shadow:0 4px 12px rgba(37,99,235,.32);
+        }
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav-links{display:flex;gap:6px;margin-left:8px}
+        .nav-links a{
+            padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2);
+            transition:background .12s,color .12s;
+        }
+        .nav-links a:hover{background:#F2F4F7;color:var(--ink)}
+        .nav-cta{margin-left:auto;display:flex;align-items:center;gap:10px}
+        .btn{
+            display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;
+            border-radius:11px;padding:11px 18px;border:1px solid transparent;cursor:pointer;
+            transition:background .14s,border-color .14s,color .14s,transform .05s;
+        }
+        .btn:active{transform:translateY(1px)}
+        .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.28)}
+        .btn-primary:hover{background:var(--primary-dark)}
+        .btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--border)}
+        .btn-ghost:hover{border-color:#D4DAE3}
+
+        /* ---------- Hero ---------- */
+        .hero{padding:74px 0 56px;text-align:center}
+        .pill{
+            display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);
+            border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:26px;
+        }
+        .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(15,122,82,.14)}
+        .hero h1{
+            font-size:clamp(34px,5.2vw,56px);line-height:1.04;font-weight:800;letter-spacing:-.035em;
+            max-width:14ch;margin:0 auto;text-wrap:balance;
+        }
+        .hero h1 .accent{color:var(--primary)}
+        .hero p{
+            margin:22px auto 0;max-width:56ch;font-size:clamp(16px,1.6vw,18.5px);color:var(--ink-2);line-height:1.6;text-wrap:pretty;
+        }
+        .hero-cta{margin-top:34px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+        .btn-lg{padding:14px 24px;font-size:15.5px}
+
+        /* ---------- Role cards ---------- */
+        section.block{padding:18px 0 28px}
+        .sec-head{margin:54px 0 22px;text-align:center}
+        .sec-head .kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+        .sec-head h2{font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-.025em;margin-top:8px}
+        .sec-head p{color:var(--muted);font-size:15.5px;margin-top:8px;max-width:52ch;margin-inline:auto}
+
+        .roles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .role{
+            background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px;
+            display:flex;flex-direction:column;gap:13px;transition:border-color .14s,box-shadow .14s,transform .14s;
+        }
+        .role:hover{border-color:var(--primary);box-shadow:0 10px 30px rgba(37,99,235,.1);transform:translateY(-3px)}
+        .role .ic{
+            width:46px;height:46px;border-radius:13px;background:var(--primary-soft);color:var(--primary);
+            display:flex;align-items:center;justify-content:center;font-size:22px;
+        }
+        .role h3{font-size:16.5px;font-weight:700}
+        .role p{font-size:13.8px;color:var(--muted);line-height:1.55;flex:1}
+        .role .go{font-size:14px;font-weight:700;color:var(--primary);display:inline-flex;align-items:center;gap:6px}
+        .role:hover .go{gap:9px}
+
+        /* ---------- Modules ---------- */
+        .modules{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+        .mod{
+            background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;
+        }
+        .mod .ic{
+            width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;
+            background:#F2F5FA;margin-bottom:14px;
+        }
+        .mod h3{font-size:16px;font-weight:700;margin-bottom:6px}
+        .mod p{font-size:13.8px;color:var(--muted);line-height:1.55}
+
+        /* ---------- CTA strip ---------- */
+        .cta-strip{
+            margin:64px 0 0;background:var(--navy);border-radius:24px;padding:48px 44px;color:#fff;
+            display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap;position:relative;overflow:hidden;
+        }
+        .cta-strip::before{content:"";position:absolute;top:-90px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(37,99,235,.4);filter:blur(10px)}
+        .cta-strip .txt{position:relative;z-index:1}
+        .cta-strip h2{font-size:26px;font-weight:800;letter-spacing:-.02em}
+        .cta-strip p{color:#B9C7E8;font-size:15px;margin-top:8px;max-width:48ch}
+        .cta-strip .actions{position:relative;z-index:1;display:flex;gap:12px;flex-wrap:wrap}
+        .btn-white{background:#fff;color:var(--navy)}
+        .btn-white:hover{background:#EAF0FF}
+        .btn-outline-light{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+        .btn-outline-light:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+
+        /* ---------- Footer ---------- */
+        footer{margin-top:56px;border-top:1px solid var(--border);padding:30px 0 44px}
+        .foot{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+        .foot .brand{font-size:16px}
+        .foot .meta{font-size:13px;color:var(--muted);line-height:1.6;text-align:right}
+
+        @media (max-width:920px){
+            .roles{grid-template-columns:repeat(2,1fr)}
+            .modules{grid-template-columns:repeat(2,1fr)}
+        }
+        @media (max-width:620px){
+            .nav-links{display:none}
+            .roles,.modules{grid-template-columns:1fr}
+            .cta-strip{padding:34px 26px}
+            .foot{flex-direction:column;align-items:flex-start}
+            .foot .meta{text-align:left}
+        }
+    </style>
 </head>
 <body>
-    <main class="container">
-        <h1>{{ app_name }}</h1>
-        <p class="subtitle">Plataforma de gestión clínica conversacional</p>
-        <p>
-            El backend está corriendo. Este es el punto de partida de la interfaz web.
-            Documentación interactiva de la API en
-            <a href="/docs">/docs</a>.
-        </p>
-        <section class="grid">
-            <article class="card"><h3>Agendas</h3><p>Pendiente</p></article>
-            <article class="card"><h3>Citas del día</h3><p>Pendiente</p></article>
-            <article class="card"><h3>Lista de espera</h3><p>Pendiente</p></article>
-            <article class="card"><h3>Conversaciones IA</h3><p>Pendiente</p></article>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name }}</a>
+            <nav class="nav-links">
+                <a href="#roles">Acceso</a>
+                <a href="#modulos">Módulos</a>
+                <a href="/docs">API</a>
+            </nav>
+            <div class="nav-cta">
+                <a class="btn btn-ghost" href="/docs">Documentación</a>
+                <a class="btn btn-primary" href="/login">Ingresar</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="wrap">
+                <span class="pill"><span class="dot"></span>Plataforma activa · backend en línea</span>
+                <h1>Gestión clínica <span class="accent">conversacional</span></h1>
+                <p>{{ app_name }} centraliza citas, agendas, listas de espera y derivaciones, con un asistente que atiende a tus pacientes por Telegram. Menos llamadas, menos errores, más horas aprovechadas.</p>
+                <div class="hero-cta">
+                    <a class="btn btn-primary btn-lg" href="/login">Ingresar al portal</a>
+                    <a class="btn btn-ghost btn-lg" href="/docs">Ver documentación de la API</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Roles -->
+        <section class="block" id="roles">
+            <div class="wrap">
+                <div class="sec-head">
+                    <div class="kicker">Acceso por rol</div>
+                    <h2>Una plataforma, cada equipo en su lugar</h2>
+                    <p>Cada usuario entra a las herramientas que le corresponden, con los permisos adecuados.</p>
+                </div>
+                <div class="roles">
+                    <a class="role" href="/login?rol=paciente">
+                        <div class="ic">🧑‍⚕️</div>
+                        <h3>Pacientes</h3>
+                        <p>Solicita, confirma, cancela o reagenda horas. Ingresa a lista de espera y consulta tu historial.</p>
+                        <span class="go">Entrar →</span>
+                    </a>
+                    <a class="role" href="/login?rol=medico">
+                        <div class="ic">🩺</div>
+                        <h3>Médicos</h3>
+                        <p>Revisa tu agenda, bloquea o suspende horarios y gestiona derivaciones de tus pacientes.</p>
+                        <span class="go">Entrar →</span>
+                    </a>
+                    <a class="role" href="/login?rol=recepcionista">
+                        <div class="ic">💬</div>
+                        <h3>Recepción</h3>
+                        <p>Gestiona citas, reagenda pacientes y administra la lista de espera de la clínica.</p>
+                        <span class="go">Entrar →</span>
+                    </a>
+                    <a class="role" href="/login?rol=administrador">
+                        <div class="ic">📊</div>
+                        <h3>Administración</h3>
+                        <p>Administra usuarios, especialidades y agendas, y visualiza métricas operacionales.</p>
+                        <span class="go">Entrar →</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modules -->
+        <section class="block" id="modulos">
+            <div class="wrap">
+                <div class="sec-head">
+                    <div class="kicker">Módulos</div>
+                    <h2>Todo el flujo clínico, automatizado</h2>
+                </div>
+                <div class="modules">
+                    <div class="mod">
+                        <div class="ic">🗓️</div>
+                        <h3>Citas médicas</h3>
+                        <p>Crea, confirma, cancela y reagenda con validación de disponibilidad y máquina de estados.</p>
+                    </div>
+                    <div class="mod">
+                        <div class="ic">⏱️</div>
+                        <h3>Agendas</h3>
+                        <p>Horarios configurables, bloqueos y suspensiones que afectan correctamente las citas existentes.</p>
+                    </div>
+                    <div class="mod">
+                        <div class="ic">📋</div>
+                        <h3>Lista de espera</h3>
+                        <p>Inscripción con prioridades, liberación automática de cupos y reasignación de horas.</p>
+                    </div>
+                    <div class="mod">
+                        <div class="ic">🔀</div>
+                        <h3>Derivaciones</h3>
+                        <p>Deriva pacientes entre especialidades y profesionales con seguimiento del estado.</p>
+                    </div>
+                    <div class="mod">
+                        <div class="ic">🤖</div>
+                        <h3>Asistente IA · Telegram</h3>
+                        <p>Interpreta intenciones y ejecuta acciones sobre el sistema desde una conversación.</p>
+                    </div>
+                    <div class="mod">
+                        <div class="ic">📈</div>
+                        <h3>Dashboards</h3>
+                        <p>Citas del día, pacientes en espera, cancelaciones, métricas e historial de conversaciones.</p>
+                    </div>
+                </div>
+
+                <!-- CTA strip -->
+                <div class="cta-strip">
+                    <div class="txt">
+                        <h2>¿Listo para gestionar tu clínica?</h2>
+                        <p>Ingresa con tu cuenta o explora la documentación interactiva de la API.</p>
+                    </div>
+                    <div class="actions">
+                        <a class="btn btn-white btn-lg" href="/login">Ingresar</a>
+                        <a class="btn btn-outline-light btn-lg" href="/docs">Explorar la API</a>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
+
+    <footer>
+        <div class="wrap foot">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name }}</a>
+            <div class="meta">
+                Plataforma de gestión clínica conversacional<br>
+                Universidad de Chile · EL-4203 Programación Avanzada
+            </div>
+        </div>
+    </footer>
 </body>
 </html>
