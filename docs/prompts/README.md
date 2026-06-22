@@ -151,3 +151,9 @@ Implementa `main.py` que ensamble la app: crea `app = FastAPI(title=settings.app
 ## `app/backend/core/seed.py` — Datos de ejemplo al arrancar
 
 **Prompt:** Crea un seed idempotente que, al levantar la app, pueble la BD con datos demo (especialidades, médicos con agenda y horarios continuos lun–vie 08:00–20:00, y pacientes) reutilizando los servicios existentes. Si ya hay datos no debe hacer nada. Controla su ejecución con un flag `seed_demo` en `config.py` e invócalo desde el `lifespan` de `main.py`.
+
+---
+
+## `app/backend/core/security.py`, `app/backend/api/routes/auth.py` — Login con RUT y contraseña
+
+**Prompt:** Implementa un sistema de autenticación básico por RUT + contraseña, respetando la arquitectura por capas. (1) Agrega una columna `password_hash` a `UsuarioORM` (herencia de tabla única, la heredan todos los roles). (2) Crea `core/security.py` que aísle el hashing (bcrypt, con saneo a 72 bytes) y los tokens JWT (`hash_password`, `verificar_password`, `crear_token`, `leer_token`), usando `secret_key` y `access_token_expire_minutes` de la config. (3) Agrega un campo opcional `password` a los schemas de creación de usuario y hashéalo en los servicios `crear_*`; añade el caso de uso `autenticar(db, run, password)`. (4) Crea la dependencia `usuario_actual` que lea un JWT desde una cookie HttpOnly. (5) Crea las rutas web `/login` (RUT + contraseña), `/logout` y un `/portal` protegido cuyas tarjetas dependen del rol (solo el administrador ve especialidades). (6) Protege `/especialidades` para que solo entre el administrador. Reutiliza el parser de RUT en un módulo `core/rut.py`.

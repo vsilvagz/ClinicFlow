@@ -55,6 +55,10 @@ class UsuarioORM(Base):
     # a SQLAlchemy qué subclase ORM corresponde a cada fila.
     rol: Mapped[RolUsuario] = mapped_column(SQLEnum(RolUsuario), nullable=False)
 
+    # password_hash: hash bcrypt de la contraseña (nunca se guarda en texto plano).
+    # Queda vacío para usuarios sin credenciales (p. ej. pacientes que solo reservan).
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
     # __mapper_args__ configura la herencia:
     #   polymorphic_on=rol         → columna que distingue los tipos.
     #   polymorphic_identity="usuario" → identidad de esta clase base.

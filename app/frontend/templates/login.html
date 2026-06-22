@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingresar — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--err:#B42318;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;
+            min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
+        a{text-decoration:none;color:inherit}
+        .box{width:100%;max-width:400px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:20px;letter-spacing:-.02em;justify-content:center;margin-bottom:24px}
+        .logo{width:36px;height:36px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:15px;height:5px}
+        .logo::after{width:5px;height:15px}
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px}
+        h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+        .sub{color:var(--muted);font-size:14.5px;margin:6px 0 20px}
+        .banner{margin-bottom:18px;padding:12px 14px;border-radius:11px;font-size:14px;font-weight:600;
+            background:#FDECEA;color:var(--err);border:1px solid #F5C6C2}
+        form{display:flex;flex-direction:column;gap:14px}
+        label{font-size:13.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:6px}
+        input{width:100%;font:inherit;font-size:15px;padding:11px 13px;border:1px solid var(--border);
+            border-radius:11px;background:#FBFCFD;color:var(--ink)}
+        input:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+        .btn{margin-top:4px;font-weight:700;font-size:15px;border-radius:11px;padding:12px 20px;border:1px solid transparent;
+            cursor:pointer;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.28)}
+        .btn:hover{background:var(--primary-dark)}
+        .foot{text-align:center;margin-top:18px;font-size:13.5px;color:var(--muted)}
+        .foot a{color:var(--primary);font-weight:600}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+        <div class="card">
+            <h1>Iniciar sesión</h1>
+            <p class="sub">Ingresa con tu RUT y contraseña.</p>
+
+            {% if error == "credenciales" %}
+                <div class="banner">RUT o contraseña incorrectos.</div>
+            {% endif %}
+
+            <form method="post" action="/login">
+                <div>
+                    <label for="run">RUT</label>
+                    <input type="text" id="run" name="run" inputmode="numeric"
+                           placeholder="Ej. 11.000.001" autocomplete="username" required />
+                </div>
+                <div>
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password"
+                           autocomplete="current-password" required />
+                </div>
+                <button class="btn" type="submit">Ingresar</button>
+            </form>
+        </div>
+        <p class="foot">¿Solo quieres reservar? <a href="/reservar">Toma una hora aquí</a></p>
+    </div>
+
+    <script>
+        // Formatea el RUT con separadores de miles mientras se escribe.
+        const runInput = document.getElementById("run");
+        runInput.addEventListener("input", (e) => {
+            const digitos = e.target.value.replace(/\D/g, "");
+            e.target.value = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        });
+    </script>
+</body>
+</html>

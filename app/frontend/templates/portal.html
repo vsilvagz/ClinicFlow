@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portal — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:880px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(26px,4vw,34px);font-weight:800;letter-spacing:-.03em}
+        .sub{color:var(--muted);font-size:15.5px;margin-top:6px}
+        .chip{display:inline-block;margin-top:14px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;
+            background:#EAF0FF;color:var(--primary)}
+        .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:28px}
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;
+            transition:border-color .14s,box-shadow .14s,transform .14s}
+        .card:hover{border-color:var(--primary);box-shadow:0 10px 30px rgba(37,99,235,.1);transform:translateY(-3px)}
+        .card h3{font-size:16.5px;font-weight:700}
+        .card p{font-size:13.8px;color:var(--muted);margin-top:6px;line-height:1.5}
+        .card.soon{opacity:.6;cursor:default}
+        .card.soon:hover{border-color:var(--border);box-shadow:none;transform:none}
+        .tag{display:inline-block;margin-top:10px;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+            text-transform:uppercase;color:var(--muted);background:#F2F4F7;border-radius:6px;padding:3px 8px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/">Inicio</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <h1>Hola, {{ usuario.nombre }}</h1>
+            <p class="sub">Bienvenido a tu portal de {{ app_name|default("ClinicFlow") }}.</p>
+            <span class="chip">{{ usuario.rol.value|capitalize }}</span>
+
+            <div class="cards">
+                {% for t in tarjetas %}
+                    {% if t.href %}
+                        <a class="card" href="{{ t.href }}">
+                            <h3>{{ t.titulo }}</h3>
+                            <p>{{ t.desc }}</p>
+                        </a>
+                    {% else %}
+                        <div class="card soon">
+                            <h3>{{ t.titulo }}</h3>
+                            <p>{{ t.desc }}</p>
+                            <span class="tag">Próximamente</span>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</body>
+</html>

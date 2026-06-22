@@ -7,6 +7,7 @@ que la especialidad de un médico exista realmente.
 
 from sqlalchemy.orm import Session
 
+from app.backend.core.security import hash_password, verificar_password
 from app.backend.domain.errores import MedicoNoEncontrado
 from app.backend.models.especialidades import EspecialidadORM
 from app.backend.models.usuarios import (
@@ -38,6 +39,11 @@ def _verificar_run_libre(db: Session, run: int) -> None:
         raise UsuarioYaExiste(f"Ya existe un usuario con RUN {run}.")
 
 
+def _hash(datos) -> str:
+    """Hash de la contraseña si se entregó; cadena vacía si el usuario no tendrá login."""
+    return hash_password(datos.password) if datos.password else ""
+
+
 def crear_paciente(db: Session, datos: PacienteCrear) -> PacienteORM:
     _verificar_run_libre(db, datos.run_usuario)
     paciente = PacienteORM(
@@ -45,6 +51,7 @@ def crear_paciente(db: Session, datos: PacienteCrear) -> PacienteORM:
         nombre=datos.nombre,
         correo=datos.correo,
         telefono=datos.telefono,
+        password_hash=_hash(datos),
     )
     db.add(paciente)
     db.commit()
@@ -65,6 +72,7 @@ def crear_medico(db: Session, datos: MedicoCrear) -> MedicoORM:
         correo=datos.correo,
         telefono=datos.telefono,
         especialidad_id=datos.especialidad_id,
+        password_hash=_hash(datos),
     )
     db.add(medico)
     db.commit()
@@ -80,6 +88,7 @@ def crear_recepcionista(db: Session, datos: RecepcionistaCrear) -> Recepcionista
         correo=datos.correo,
         telefono=datos.telefono,
         clinica_rut=datos.clinica_rut,
+        password_hash=_hash(datos),
     )
     db.add(recepcionista)
     db.commit()
@@ -94,6 +103,7 @@ def crear_administrador(db: Session, datos: AdministradorCrear) -> Administrador
         nombre=datos.nombre,
         correo=datos.correo,
         telefono=datos.telefono,
+        password_hash=_hash(datos),
     )
     db.add(admin)
     db.commit()
@@ -120,6 +130,18 @@ def obtener_paciente(db: Session, run: int) -> PacienteORM | None:
 
 def listar_medicos_por_especialidad(db: Session, especialidad_id: int) -> list[MedicoORM]:
     return RepositorioUsuarios(db).listar_medicos_por_especialidad(especialidad_id)
+
+
+def autenticar(db: Session, run: int, password: str) -> UsuarioORM | None:
+    """Valida las credenciales y devuelve el usuario, o None si no calzan.
+
+    Falla (devuelve None) tanto si el usuario no existe como si la contraseña es
+    incorrecta o el usuario no tiene credenciales configuradas.
+    """
+    usuario = db.get(UsuarioORM, run)
+    if usuario is None or not verificar_password(password, usuario.password_hash):
+        return None
+    return usuario
 
 
 def obtener_medico(db: Session, run: int) -> MedicoORM:

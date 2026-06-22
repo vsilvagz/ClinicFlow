@@ -22,6 +22,8 @@ class _UsuarioBase(BaseModel):
     nombre: str = Field(min_length=1, max_length=150)
     correo: EmailStr
     telefono: int = Field(gt=0)
+    # Opcional: si se entrega, habilita el inicio de sesión de ese usuario.
+    password: str | None = Field(default=None, min_length=4, max_length=128)
 
 
 class PacienteCrear(_UsuarioBase):

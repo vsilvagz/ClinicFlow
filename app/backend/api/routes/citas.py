@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.backend.api.templates import templates
 from app.backend.core.config import settings
 from app.backend.core.database import get_db
+from app.backend.core.rut import parsear_run
 from app.backend.domain.errores import (
     CitaEnPasadoError,
     ConflictoDeAgenda,
@@ -56,18 +57,6 @@ def _parsear_fecha(valor: str | None) -> date:
         except ValueError:
             pass
     return date.today()
-
-
-def _parsear_run(valor: str | None) -> int | None:
-    """Normaliza un RUT escrito por el usuario a un entero (sin dígito verificador).
-
-    Acepta formas como "12.345.678-9" o "12345678": descarta puntos, espacios y
-    el dígito verificador tras el guion. Devuelve None si no queda un número.
-    """
-    if not valor:
-        return None
-    limpio = valor.strip().split("-")[0].replace(".", "").replace(" ", "")
-    return int(limpio) if limpio.isdigit() else None
 
 
 @router.get("/reservar", include_in_schema=False)
@@ -123,7 +112,7 @@ def identificar_paciente(
     db: Session = Depends(get_db),
 ):
     """Busca al paciente por RUT; si existe continúa, si no, pide registrarlo."""
-    run_num = _parsear_run(run)
+    run_num = parsear_run(run)
     if run_num is None:
         return RedirectResponse("/reservar?error=run", status_code=303)
 
@@ -141,7 +130,7 @@ def registrar_paciente(
     db: Session = Depends(get_db),
 ):
     """Registra un paciente nuevo y lo deja identificado para reservar."""
-    telefono_num = _parsear_run(telefono)  # mismo saneo de dígitos que el RUT.
+    telefono_num = parsear_run(telefono)  # mismo saneo de dígitos que el RUT.
     try:
         datos = PacienteCrear(
             run_usuario=run,
