@@ -105,7 +105,8 @@
                 <form method="post" action="/reservar/identificar">
                     <div>
                         <label for="run">RUT</label>
-                        <input type="text" id="run" name="run" placeholder="Ej. 12345678" required />
+                        <input type="text" id="run" name="run" inputmode="numeric"
+                               placeholder="Ej. 12.345.678" autocomplete="off" required />
                     </div>
                     <button class="btn" type="submit">Continuar</button>
                 </form>
@@ -208,5 +209,17 @@
             {% endif %}
         </div>
     </main>
+
+    <script>
+        // Formatea el RUT con separadores de miles mientras se escribe
+        // (p. ej. 11111111 → 11.111.111). El backend ignora los puntos.
+        const runInput = document.getElementById("run");
+        if (runInput) {
+            runInput.addEventListener("input", (e) => {
+                const digitos = e.target.value.replace(/\D/g, "");
+                e.target.value = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            });
+        }
+    </script>
 </body>
 </html>
