@@ -37,3 +37,8 @@ def crear_especialidad(db: Session, datos: EspecialidadCrear) -> EspecialidadORM
 def listar_especialidades(db: Session) -> list[EspecialidadORM]:
     """Devuelve todas las especialidades registradas."""
     return RepositorioEspecialidades(db).listar()
+
+
+def obtener_especialidad(db: Session, especialidad_id: int) -> EspecialidadORM | None:
+    """Devuelve la especialidad con ese id, o None si no existe."""
+    return RepositorioEspecialidades(db).obtener(especialidad_id)

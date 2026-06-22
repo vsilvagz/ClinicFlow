@@ -34,10 +34,14 @@ from app.backend.schemas.citas import CitaCrear
 from app.backend.schemas.usuarios import PacienteCrear
 from app.backend.services.agendas_service import slots_disponibles_de_medico
 from app.backend.services.citas_service import crear_cita
+from app.backend.services.especialidades_service import (
+    listar_especialidades,
+    obtener_especialidad,
+)
 from app.backend.services.usuarios_service import (
     UsuarioYaExiste,
     crear_paciente,
-    listar_medicos,
+    listar_medicos_por_especialidad,
     obtener_paciente,
 )
 
@@ -72,13 +76,22 @@ def pagina_reservar(
     db: Session = Depends(get_db),
     paciente_run: int | None = None,
     registrar: int | None = None,
+    especialidad_id: int | None = None,
     medico_run: int | None = None,
     fecha: str | None = None,
     creada: str | None = None,
     error: str | None = None,
 ):
-    """Renderiza la página de reserva en el estado que corresponda según la query."""
+    """Renderiza la página de reserva en el estado que corresponda según la query.
+
+    Estando el paciente identificado, el flujo es: elegir especialidad → elegir
+    médico de esa especialidad y fecha → elegir una hora libre.
+    """
     paciente = obtener_paciente(db, paciente_run) if paciente_run else None
+    especialidad = obtener_especialidad(db, especialidad_id) if especialidad_id else None
+    medicos = (
+        listar_medicos_por_especialidad(db, especialidad_id) if especialidad else []
+    )
     fecha_sel = _parsear_fecha(fecha)
     slots = (
         slots_disponibles_de_medico(db, medico_run, fecha_sel)
@@ -92,7 +105,9 @@ def pagina_reservar(
             "app_name": settings.app_name,
             "paciente": paciente,
             "registrar": registrar,
-            "medicos": listar_medicos(db),
+            "especialidades": listar_especialidades(db),
+            "especialidad": especialidad,
+            "medicos": medicos,
             "medico_run": medico_run,
             "fecha": fecha_sel.isoformat(),
             "slots": slots,
@@ -151,17 +166,22 @@ def reservar_web(
     paciente_run: int = Form(...),
     medico_run: int = Form(...),
     inicio: str = Form(...),
+    especialidad_id: int | None = Form(None),
     motivo: str = Form(""),
     db: Session = Depends(get_db),
 ):
     """Crea la cita para el slot elegido y vuelve a la página de reserva."""
+    contexto = f"paciente_run={paciente_run}"
+    if especialidad_id is not None:
+        contexto += f"&especialidad_id={especialidad_id}"
+
     try:
         inicio_dt = datetime.fromisoformat(inicio)
     except ValueError:
-        return RedirectResponse(f"/reservar?paciente_run={paciente_run}&error=invalido", status_code=303)
+        return RedirectResponse(f"/reservar?{contexto}&error=invalido", status_code=303)
 
     fecha_q = inicio_dt.date().isoformat()
-    base = f"/reservar?paciente_run={paciente_run}&medico_run={medico_run}&fecha={fecha_q}"
+    base = f"/reservar?{contexto}&medico_run={medico_run}&fecha={fecha_q}"
 
     # Revalidar disponibilidad contra la agenda: el slot pudo ocuparse entre que
     # se mostró la página y se envió el formulario.

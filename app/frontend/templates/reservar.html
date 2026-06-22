@@ -66,6 +66,15 @@
         .slot input:checked + span{border-color:var(--primary);background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.28)}
         .empty{color:var(--muted);font-size:14.5px;padding:8px 0}
         .hint{color:var(--muted);font-size:13.5px}
+
+        .autocomplete{position:relative}
+        .suggest{list-style:none;position:absolute;left:0;right:0;top:100%;margin-top:6px;z-index:20;
+            background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+            box-shadow:0 12px 30px rgba(16,21,31,.12)}
+        .suggest li{padding:11px 14px;font-size:14.5px;cursor:pointer}
+        .suggest li:hover,.suggest li.activo{background:var(--primary);color:#fff}
+        .suggest li small{display:block;font-size:12.5px;color:var(--muted)}
+        .suggest li:hover small,.suggest li.activo small{color:rgba(255,255,255,.85)}
     </style>
 </head>
 <body>
@@ -148,41 +157,65 @@
                 <a class="change" href="/reservar">Cambiar</a>
             </div>
 
-            <!-- Paso 2: elegir médico y fecha -->
+            <!-- Paso 2: elegir especialidad (con autocompletado) -->
             <div class="card">
-                <h2>Médico y fecha</h2>
-                <p class="lead">Elige con quién y qué día quieres atenderte.</p>
-                <form method="get" action="/reservar">
+                <h2>Especialidad</h2>
+                <p class="lead">Escribe la especialidad que buscas y elige una sugerencia.</p>
+                <form method="get" action="/reservar" id="form-esp">
                     <input type="hidden" name="paciente_run" value="{{ paciente.run_usuario }}" />
-                    <div class="row">
-                        <div>
-                            <label for="medico_run">Médico</label>
-                            <select id="medico_run" name="medico_run" required>
-                                <option value="" disabled {% if medico_run is none %}selected{% endif %}>Selecciona un médico…</option>
-                                {% for m in medicos %}
-                                    <option value="{{ m.run_usuario }}" {% if m.run_usuario == medico_run %}selected{% endif %}>
-                                        {{ m.nombre }}{% if m.especialidad %} — {{ m.especialidad.nombre }}{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label for="fecha">Fecha</label>
-                            <input type="date" id="fecha" name="fecha" value="{{ fecha }}" required />
-                        </div>
+                    <input type="hidden" name="especialidad_id" id="especialidad_id" value="{{ especialidad.id if especialidad else '' }}" />
+                    <div class="autocomplete">
+                        <label for="especialidad_q">Especialidad</label>
+                        <input type="text" id="especialidad_q" autocomplete="off"
+                               placeholder="Ej. Cardiología"
+                               value="{{ especialidad.nombre if especialidad else '' }}" required />
+                        <ul id="sugerencias" class="suggest" hidden></ul>
                     </div>
-                    <button class="btn ghost" type="submit">Ver disponibilidad</button>
+                    <button class="btn ghost" type="submit">Ver médicos</button>
                 </form>
             </div>
 
-            <!-- Paso 3: elegir hora -->
-            {% if medico_run is not none %}
+            <!-- Paso 3: elegir médico y fecha -->
+            {% if especialidad %}
+            <div class="card">
+                <h2>Médico y fecha</h2>
+                {% if medicos %}
+                    <p class="lead">Médicos de {{ especialidad.nombre }}. Elige con quién y qué día atenderte.</p>
+                    <form method="get" action="/reservar">
+                        <input type="hidden" name="paciente_run" value="{{ paciente.run_usuario }}" />
+                        <input type="hidden" name="especialidad_id" value="{{ especialidad.id }}" />
+                        <div class="row">
+                            <div>
+                                <label for="medico_run">Médico</label>
+                                <select id="medico_run" name="medico_run" required>
+                                    <option value="" disabled {% if medico_run is none %}selected{% endif %}>Selecciona un médico…</option>
+                                    {% for m in medicos %}
+                                        <option value="{{ m.run_usuario }}" {% if m.run_usuario == medico_run %}selected{% endif %}>{{ m.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="fecha">Fecha</label>
+                                <input type="date" id="fecha" name="fecha" value="{{ fecha }}" required />
+                            </div>
+                        </div>
+                        <button class="btn ghost" type="submit">Ver disponibilidad</button>
+                    </form>
+                {% else %}
+                    <p class="empty">No hay médicos registrados para {{ especialidad.nombre }}.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Paso 4: elegir hora -->
+            {% if especialidad and medico_run is not none %}
             <div class="card">
                 <h2>Hora disponible</h2>
                 {% if slots %}
                     <p class="lead">{{ slots|length }} cupos disponibles para el {{ fecha }}.</p>
                     <form method="post" action="/reservar">
                         <input type="hidden" name="paciente_run" value="{{ paciente.run_usuario }}" />
+                        <input type="hidden" name="especialidad_id" value="{{ especialidad.id }}" />
                         <input type="hidden" name="medico_run" value="{{ medico_run }}" />
                         <div>
                             <label for="motivo">Motivo (opcional)</label>
@@ -218,6 +251,59 @@
             runInput.addEventListener("input", (e) => {
                 const digitos = e.target.value.replace(/\D/g, "");
                 e.target.value = digitos.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            });
+        }
+
+        // Autocompletado de especialidad: sugiere mientras se escribe.
+        const ESPECIALIDADES = [
+            {% for e in especialidades %}{ id: {{ e.id }}, nombre: {{ e.nombre|tojson }}, descripcion: {{ (e.descripcion or "")|tojson }} }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+        const espInput = document.getElementById("especialidad_q");
+        const espId = document.getElementById("especialidad_id");
+        const sugBox = document.getElementById("sugerencias");
+        const formEsp = document.getElementById("form-esp");
+
+        if (espInput) {
+            const cerrar = () => { sugBox.hidden = true; sugBox.innerHTML = ""; };
+
+            const render = (items) => {
+                sugBox.innerHTML = "";
+                if (!items.length) { cerrar(); return; }
+                for (const e of items) {
+                    const li = document.createElement("li");
+                    li.innerHTML = e.descripcion
+                        ? `${e.nombre}<small>${e.descripcion}</small>` : e.nombre;
+                    // mousedown se dispara antes del blur del input.
+                    li.addEventListener("mousedown", (ev) => {
+                        ev.preventDefault();
+                        espInput.value = e.nombre;
+                        espId.value = e.id;
+                        cerrar();
+                        formEsp.submit();
+                    });
+                    sugBox.appendChild(li);
+                }
+                sugBox.hidden = false;
+            };
+
+            espInput.addEventListener("input", () => {
+                espId.value = "";  // al escribir se invalida la selección previa.
+                const q = norm(espInput.value);
+                if (!q) { cerrar(); return; }
+                render(ESPECIALIDADES.filter((e) => norm(e.nombre).includes(q)).slice(0, 8));
+            });
+
+            espInput.addEventListener("blur", () => setTimeout(cerrar, 150));
+
+            // Al enviar, si no se eligió una sugerencia, intenta calzar el texto exacto.
+            formEsp.addEventListener("submit", (ev) => {
+                if (espId.value) return;
+                const match = ESPECIALIDADES.find((e) => norm(e.nombre) === norm(espInput.value));
+                if (match) { espId.value = match.id; }
+                else { ev.preventDefault(); render(ESPECIALIDADES.filter((e) => norm(e.nombre).includes(norm(espInput.value))).slice(0, 8)); }
             });
         }
     </script>

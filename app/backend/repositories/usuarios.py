@@ -34,3 +34,11 @@ class RepositorioUsuarios(RepositorioBase[UsuarioORM]):
     def listar_pacientes(self) -> list[PacienteORM]:
         """Lista todos los pacientes registrados."""
         return list(self.db.scalars(select(PacienteORM)))
+
+    def listar_medicos_por_especialidad(self, especialidad_id: int) -> list[MedicoORM]:
+        """Lista los médicos que atienden una especialidad."""
+        return list(
+            self.db.scalars(
+                select(MedicoORM).where(MedicoORM.especialidad_id == especialidad_id)
+            )
+        )
