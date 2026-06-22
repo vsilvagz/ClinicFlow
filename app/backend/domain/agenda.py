@@ -97,6 +97,15 @@ class Agenda:
         self._validar_capacidad(cita.inicio.date())
         self._citas.append(cita)
 
+    def cargar_citas(self, citas: list[Cita]) -> None:
+        """Rehidrata citas ya validadas desde la persistencia, sin volver a validar.
+
+        Lo usa la capa de servicios al reconstruir una agenda desde la base de
+        datos: esas citas ya superaron las validaciones cuando se crearon, así que
+        solo se incorporan para poder consultar disponibilidad y slots libres.
+        """
+        self._citas.extend(citas)
+
     def citas_del_dia(self, fecha: date) -> list[Cita]:
         return [c for c in self._citas if c.inicio.date() == fecha]
 

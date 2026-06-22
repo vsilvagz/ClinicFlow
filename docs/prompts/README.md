@@ -134,3 +134,14 @@ Los métodos deben ser:
 **Prompt:** Implementa `api/routes/health.py` con un `APIRouter(prefix="/health")` y dos endpoints: `GET /health` devuelve un dict con `status`, `app` y `environment` leídos de `settings`, sin tocar la base de datos; `GET /health/db` recibe la sesión con `Depends(get_db)`, ejecuta `db.execute(text("SELECT 1"))` y devuelve `{"status": "ok", "database": "reachable"}`.
 
 Implementa `main.py` que ensamble la app: crea `app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)`; el `lifespan` (con `@asynccontextmanager`) llama a `Base.metadata.create_all(bind=engine)` al iniciar e importa el paquete `app.backend.models` para registrar las tablas en `Base.metadata`; monta `StaticFiles` en `/static` y configura `Jinja2Templates`, resolviendo la carpeta `frontend/` con `pathlib.Path(__file__)`; incluye `health.router`; y define `GET /` que renderice `index.html` pasándole `app_name`. Mantén el estilo de comentarios didácticos del resto del proyecto.
+
+---
+
+## `app/backend/` — Capa de aplicación de clínicas, agendas, derivaciones y lista de espera
+
+**Prompt:** Para clínicas, agendas, derivaciones y lista de espera, escribe su schema Pydantic, su repositorio (heredando de `RepositorioBase`) y su servicio, siguiendo el patrón de citas/usuarios/especialidades: el servicio recibe `Session` + schema, valida, persiste con `commit`/`refresh` y devuelve el ORM; reutiliza las entidades de dominio.
+
+- **Clínicas:** escribe `crear_clinica` (rechaza RUT duplicado), `listar_clinicas`, `obtener_clinica`.
+- **Agendas:** añade al dominio `Agenda` un método `cargar_citas(citas)` que incorpore citas ya validadas sin re-validar. Escribe `_a_dominio(db, orm)` que rehidrate la `Agenda` cargando horarios, bloqueos, suspensiones y las citas activas del médico (búscalas por RUN, no por la FK de la cita). Escribe `crear_agenda`, `agregar_horario`, `bloquear_horario`, `suspender_agenda` (cancela las citas activas del período con `Cita.cancelar` y las devuelve), `consultar_disponibilidad` y `slots_disponibles`.
+- **Derivaciones:** con helpers `_a_dominio`/`_a_orm`, escribe `emitir_derivacion` (usa `Derivacion.crear`), `completar_derivacion`, `expirar_vencidas` y los listados.
+- **Lista de espera:** reutiliza `_PESO_PRIORIDAD` del dominio para ordenar. Escribe `obtener_o_crear_lista`, `inscribir_paciente` (evita duplicados), `siguiente_en_espera`, `asignar_siguiente_cupo` (retira al de mayor prioridad) y `retirar_paciente`.
