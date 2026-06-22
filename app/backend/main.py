@@ -6,8 +6,7 @@ todas las piezas del backend se conectan entre sí:
 - Se crea la instancia de FastAPI con los datos de la app (nombre, versión).
 - Al arrancar, se crean las tablas de la base de datos a partir de los modelos ORM.
 - Se montan los archivos estáticos y las plantillas de la interfaz web.
-- Se publica la página de inicio y se incluyen los routers de la API (por ahora,
-  el de salud; los demás se irán sumando aquí a medida que se implementen).
+- Se publica la página de inicio y se incluyen los routers de la API.
 
 La regla de diseño es que este archivo SOLO ensambla: la lógica vive en el
 dominio y los servicios, las rutas en sus propios routers. Aquí se conectan.
@@ -16,32 +15,21 @@ dominio y los servicios, las rutas en sus propios routers. Aquí se conectan.
 # asynccontextmanager: construye el manejador de ciclo de vida (lifespan) que
 # corre código al iniciar y al apagar la aplicación.
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 
-# StaticFiles sirve CSS/JS/imágenes; Jinja2Templates renderiza HTML con variables.
+# StaticFiles sirve CSS/JS/imágenes de la interfaz web.
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
-from app.backend.api.routes import health
-from app.backend.core.config import settings
-from app.backend.core.database import Base, engine
 
 # Importar el paquete de modelos REGISTRA todas las tablas en Base.metadata.
 # Sin este import, create_all() no sabría qué tablas crear.
 from app.backend import models  # noqa: F401  (import por efecto secundario)
+from app.backend.api.routes import especialidades, health
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Rutas del frontend: ubicamos las carpetas de plantillas y estáticos de forma
-# robusta a partir de este archivo, para que funcione igual en local y en Docker.
-#   main.py → backend → app → (raíz)/frontend
-# ──────────────────────────────────────────────────────────────────────────────
-
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
-templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
-
+# FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
+from app.backend.api.templates import FRONTEND_DIR, templates
+from app.backend.core.config import settings
+from app.backend.core.database import Base, engine
 
 # ──────────────────────────────────────────────────────────────────────────────
 # lifespan: se ejecuta UNA vez al levantar la app y otra al apagarla.
@@ -76,9 +64,10 @@ app.mount(
     name="static",
 )
 
-# Montamos los routers de la API. Cada módulo nuevo (citas, usuarios, …) se
-# incluye aquí cuando esté listo.
+# Montamos los routers. Cada módulo nuevo (citas, usuarios, …) se incluye aquí
+# cuando esté listo.
 app.include_router(health.router)
+app.include_router(especialidades.router)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

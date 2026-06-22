@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Especialidades — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--ok:#0F7A52;--err:#B42318;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:880px;margin:0 auto;padding:0 28px}
+
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-.03em}
+        .sub{color:var(--muted);font-size:15.5px;margin-top:6px}
+
+        .banner{margin:24px 0 0;padding:13px 16px;border-radius:12px;font-size:14.5px;font-weight:600;border:1px solid}
+        .banner.ok{background:#E9F7F0;color:var(--ok);border-color:#BfE6D4}
+        .banner.err{background:#FDECEA;color:var(--err);border-color:#F5C6C2}
+
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-top:24px}
+        .card h2{font-size:18px;font-weight:700;margin-bottom:16px}
+        form{display:flex;flex-direction:column;gap:14px}
+        label{font-size:13.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:6px}
+        input[type=text],textarea{
+            width:100%;font:inherit;font-size:15px;padding:11px 13px;border:1px solid var(--border);
+            border-radius:11px;background:#FBFCFD;color:var(--ink);resize:vertical;
+        }
+        input:focus,textarea:focus{outline:none;border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+        .btn{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14.5px;border-radius:11px;padding:11px 20px;border:1px solid transparent;cursor:pointer;background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.28)}
+        .btn:hover{background:var(--primary-dark)}
+
+        table{width:100%;border-collapse:collapse;font-size:14.5px}
+        th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--border)}
+        th{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+        tr:last-child td{border-bottom:none}
+        td.id{color:var(--muted);width:60px}
+        td.desc{color:var(--ink-2)}
+        .empty{color:var(--muted);font-size:14.5px;padding:8px 0}
+        .count{color:var(--muted);font-size:13.5px;font-weight:600}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/">Inicio</a>
+            <a class="link" href="/docs">API</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <h1>Especialidades</h1>
+            <p class="sub">Registra las especialidades médicas que ofrece la clínica.</p>
+
+            {% if creada %}
+                <div class="banner ok">Especialidad creada correctamente.</div>
+            {% elif error == "existe" %}
+                <div class="banner err">Ya existe una especialidad con ese nombre.</div>
+            {% elif error == "invalido" %}
+                <div class="banner err">El nombre es obligatorio (máximo 100 caracteres).</div>
+            {% endif %}
+
+            <div class="card">
+                <h2>Nueva especialidad</h2>
+                <form method="post" action="/especialidades">
+                    <div>
+                        <label for="nombre">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" maxlength="100"
+                               placeholder="Ej. Cardiología" required />
+                    </div>
+                    <div>
+                        <label for="descripcion">Descripción (opcional)</label>
+                        <textarea id="descripcion" name="descripcion" rows="2" maxlength="500"
+                                  placeholder="Breve descripción de la especialidad"></textarea>
+                    </div>
+                    <button class="btn" type="submit">Crear especialidad</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Registradas <span class="count">({{ especialidades|length }})</span></h2>
+                {% if especialidades %}
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for e in especialidades %}
+                                <tr>
+                                    <td class="id">{{ e.id }}</td>
+                                    <td>{{ e.nombre }}</td>
+                                    <td class="desc">{{ e.descripcion or "—" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="empty">Aún no hay especialidades registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</body>
+</html>
