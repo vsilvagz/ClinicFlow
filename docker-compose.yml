@@ -23,6 +23,8 @@ services:
     environment:
       # Sobrescribe el host de la BD para apuntar al servicio "db".
       DATABASE_URL: postgresql+psycopg2://clinicflow:clinicflow@db:5432/clinicflow
+      # Zona horaria local (coherente con las fechas que maneja la app).
+      TZ: America/Santiago
     ports:
       - "8000:8000"
     depends_on:

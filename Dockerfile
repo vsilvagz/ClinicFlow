@@ -2,14 +2,17 @@
 FROM python:3.11-slim
 
 # Evita .pyc y fuerza salida sin buffer (mejores logs en contenedor).
+# TZ deja al contenedor en hora de Chile, para que datetime.now() sea coherente
+# con las fechas locales que maneja la app (slots, citas, chequeo de pasado).
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    TZ=America/Santiago
 
 WORKDIR /code
 
-# Dependencias del sistema necesarias para psycopg2.
+# Dependencias del sistema necesarias para psycopg2 y la zona horaria (tzdata).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && apt-get install -y --no-install-recommends gcc libpq-dev tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Instala dependencias Python primero (mejor uso de la caché de capas).

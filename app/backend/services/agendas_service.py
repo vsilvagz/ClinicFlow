@@ -191,14 +191,17 @@ def slots_disponibles(db: Session, agenda_id: int, fecha: date) -> list[datetime
 
 
 def slots_disponibles_de_medico(
-    db: Session, medico_run: int, fecha: date
+    db: Session, medico_run: int, fecha: date, ahora: datetime | None = None
 ) -> list[datetime]:
     """Lista las horas libres de un médico en una fecha (vía su agenda).
 
     Devuelve [] si el médico no tiene agenda configurada. Pensado para la página
-    de reserva, que parte del médico y no del id de agenda.
+    de reserva, que parte del médico y no del id de agenda. Descarta las horas ya
+    pasadas, para no ofrecer cupos que luego serían rechazados por estar en el
+    pasado.
     """
     agenda = RepositorioAgendas(db).obtener_por_medico(medico_run)
     if agenda is None:
         return []
-    return _a_dominio(db, agenda).slots_disponibles(fecha)
+    ahora = ahora or datetime.now()
+    return [s for s in _a_dominio(db, agenda).slots_disponibles(fecha) if s > ahora]
