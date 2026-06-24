@@ -13,6 +13,7 @@ from app.backend.core.config import settings
 from app.backend.core.database import get_db
 from app.backend.domain.enums import EstadoCita, RolUsuario
 from app.backend.models.lista_espera import InscripcionEsperaORM
+from app.backend.models.mensajes import MensajeORM
 from app.backend.models.usuarios import UsuarioORM
 from app.backend.repositories.citas import RepositorioCitas
 
@@ -47,6 +48,10 @@ def dashboard(
         select(func.count()).select_from(InscripcionEsperaORM)
     ) or 0
 
+    historial = list(db.scalars(
+        select(MensajeORM).order_by(MensajeORM.creada_en.desc()).limit(10)
+    ))
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -60,5 +65,6 @@ def dashboard(
             "confirmadas": confirmadas,
             "canceladas": canceladas,
             "total_espera": total_espera,
+            "historial": historial,
         },
     )

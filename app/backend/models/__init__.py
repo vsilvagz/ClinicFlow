@@ -29,6 +29,7 @@ from app.backend.models.agenda import (
 )
 from app.backend.models.citas import CitaORM
 from app.backend.models.derivacion import DerivacionORM
+from app.backend.models.mensajes import MensajeORM
 from app.backend.models.lista_espera import (
     InscripcionEsperaORM,
     ListaEsperaORM,
@@ -52,9 +53,10 @@ __all__ = [
     "BloqueHorarioORM",
     "BloqueoORM",
     "SuspensionORM",
-    # Citas y derivaciones
+    # Citas, derivaciones y mensajes
     "CitaORM",
     "DerivacionORM",
+    "MensajeORM",
     # Lista de espera
     "ListaEsperaORM",
     "InscripcionEsperaORM",

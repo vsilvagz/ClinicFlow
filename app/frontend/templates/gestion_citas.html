@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionar citas — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;--border:#ECEFF3;--primary:#2563EB;--radius:16px;}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:980px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}.logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+        .sub{color:var(--muted);font-size:15px;margin-bottom:20px}
+        .date-nav{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+        .date-nav a{padding:7px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-size:14px;font-weight:600;color:var(--ink-2)}
+        .date-nav a:hover{border-color:var(--primary);color:var(--primary)}
+        .date-nav .fecha-actual{font-size:17px;font-weight:800;letter-spacing:-.02em}
+        .alert{padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:14px;font-weight:600;background:#D1FAE5;color:#065F46}
+        .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .section-title{font-size:16px;font-weight:700;padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .count-chip{background:#EAF0FF;color:var(--primary);font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+        table{width:100%;border-collapse:collapse}
+        th{text-align:left;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 16px;border-bottom:1px solid var(--border)}
+        td{padding:11px 16px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#FAFBFC}
+        .nombre{font-weight:600}
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+        .b-pendiente{background:#FEF3C7;color:#D97706}.b-confirmada{background:#DBEAFE;color:#1D4ED8}
+        .b-cancelada{background:#FEE2E2;color:#DC2626}.b-reagendada{background:#F3F4F6;color:#374151}
+        .b-completada{background:#D1FAE5;color:#065F46}.b-no_asistio{background:#FFEDD5;color:#C2410C}
+        .actions{display:flex;gap:6px;flex-wrap:wrap}
+        .btn{padding:5px 11px;border-radius:8px;border:1px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;color:var(--ink-2)}
+        .btn:hover{border-color:var(--primary);color:var(--primary)}
+        .btn-green{border-color:#D1FAE5;color:#065F46}.btn-green:hover{background:#D1FAE5;border-color:#065F46}
+        .btn-red{border-color:#FEE2E2;color:#DC2626}.btn-red:hover{background:#FEE2E2;border-color:#DC2626}
+        .btn-orange{border-color:#FFEDD5;color:#C2410C}.btn-orange:hover{background:#FFEDD5;border-color:#C2410C}
+        .btn-blue{border-color:#DBEAFE;color:#1D4ED8}.btn-blue:hover{background:#DBEAFE;border-color:#1D4ED8}
+        .empty{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/dashboard">Dashboard</a>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+    <main>
+        <div class="wrap">
+            <h1>Gestionar citas</h1>
+            <p class="sub">{{ usuario.nombre }}</p>
+
+            {% if ok %}
+            <div class="alert">
+                {% if ok == 'confirmada' %}Cita confirmada correctamente.
+                {% elif ok == 'cancelada' %}Cita cancelada correctamente.
+                {% elif ok == 'no_asistio' %}Cita marcada como no asistió.
+                {% elif ok == 'reagendada' %}Cita reagendada correctamente.
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="date-nav">
+                <a href="/gestion-citas?fecha={{ dia_anterior }}">← Anterior</a>
+                <span class="fecha-actual">{{ dia.strftime("%A %d de %B de %Y") | capitalize }}</span>
+                <a href="/gestion-citas?fecha={{ dia_siguiente }}">Siguiente →</a>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    Citas del día
+                    <span class="count-chip">{{ citas | length }}</span>
+                </div>
+
+                {% if citas %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Especialidad</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cita in citas %}
+                        <tr>
+                            <td style="font-weight:700">{{ cita.inicio.strftime("%H:%M") }}</td>
+                            <td class="nombre">{{ cita.paciente.nombre }}</td>
+                            <td>{{ cita.medico.nombre }}</td>
+                            <td>{{ cita.especialidad }}</td>
+                            <td>
+                                {% set estado = cita.estado.value | lower %}
+                                <span class="badge b-{{ estado }}">{{ cita.estado.value | replace("_"," ") | capitalize }}</span>
+                            </td>
+                            <td>
+                                <div class="actions">
+                                    {% if cita.estado.value == 'PENDIENTE' %}
+                                    <form method="post" action="/gestion-citas/{{ cita.id }}/confirmar">
+                                        <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
+                                        <button class="btn btn-green" type="submit">Confirmar</button>
+                                    </form>
+                                    {% endif %}
+                                    {% if cita.estado.value in ['PENDIENTE', 'CONFIRMADA'] %}
+                                    <form method="post" action="/gestion-citas/{{ cita.id }}/cancelar">
+                                        <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
+                                        <button class="btn btn-red" type="submit" onclick="return confirm('¿Cancelar esta cita?')">Cancelar</button>
+                                    </form>
+                                    <form method="post" action="/gestion-citas/{{ cita.id }}/no-asistio">
+                                        <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
+                                        <button class="btn btn-orange" type="submit">No asistió</button>
+                                    </form>
+                                    <a class="btn btn-blue" href="/gestion-citas/{{ cita.id }}/reagendar">Reagendar</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">Sin citas para este día.</div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</body>
+</html>

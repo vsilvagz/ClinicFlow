@@ -26,7 +26,8 @@ from fastapi.staticfiles import StaticFiles
 from app.backend import models  # noqa: F401  (import por efecto secundario)
 from app.backend.api.routes import (
     agenda, auth, citas, dashboard, derivaciones,
-    especialidades, health, lista_espera, mis_citas,
+    especialidades, gestion_citas, health, lista_espera,
+    mi_agenda, mis_citas, mis_mensajes, usuarios,
 )
 
 # FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
@@ -83,8 +84,12 @@ app.include_router(citas.router)
 app.include_router(dashboard.router)
 app.include_router(agenda.router)
 app.include_router(mis_citas.router)
+app.include_router(mis_mensajes.router)
 app.include_router(lista_espera.router)
 app.include_router(derivaciones.router)
+app.include_router(gestion_citas.router)
+app.include_router(mi_agenda.router)
+app.include_router(usuarios.router)
 app.include_router(auth.router)
 
 

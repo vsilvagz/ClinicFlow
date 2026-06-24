@@ -69,11 +69,9 @@
         /* Empty state */
         .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:15px}
 
-        /* Conversaciones placeholder */
-        .placeholder{text-align:center;padding:36px 20px}
-        .placeholder .icon{font-size:40px;margin-bottom:12px}
-        .placeholder p{color:var(--muted);font-size:14.5px}
-        .placeholder strong{display:block;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+        .tipo-badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;background:#EAF0FF;color:var(--primary)}
+        .msg-contenido{font-size:13.5px;color:var(--ink-2)}
+        .msg-fecha{font-size:12px;color:var(--muted);white-space:nowrap}
 
         /* Espera info */
         .espera-info{display:flex;align-items:center;gap:16px;padding:8px 0}
@@ -174,14 +172,37 @@
                 </div>
             </div>
 
-            <!-- Historial de conversaciones -->
+            <!-- Historial de mensajes enviados a pacientes -->
             <div class="section">
-                <div class="section-title">Historial de conversaciones</div>
-                <div class="placeholder">
-                    <div class="icon">💬</div>
-                    <strong>Bot de Telegram próximamente</strong>
-                    <p>Cuando el asistente esté activo, aquí verás el historial<br>de todas las conversaciones con los pacientes.</p>
+                <div class="section-title">
+                    Historial de conversaciones
+                    <span class="count">{{ historial | length }}</span>
                 </div>
+
+                {% if historial %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Paciente</th>
+                            <th>Mensaje</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in historial %}
+                        <tr>
+                            <td><span class="tipo-badge">{{ msg.tipo }}</span></td>
+                            <td class="nombre">{{ msg.paciente.nombre }}</td>
+                            <td class="msg-contenido">{{ msg.contenido }}</td>
+                            <td class="msg-fecha">{{ msg.creada_en.strftime("%d/%m/%Y %H:%M") }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">Sin mensajes enviados todavía.</div>
+                {% endif %}
             </div>
         </div>
     </main>

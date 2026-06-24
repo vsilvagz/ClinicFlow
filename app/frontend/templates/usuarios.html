@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usuarios — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;--border:#ECEFF3;--primary:#2563EB;--radius:16px;}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:1100px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}.logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+        .sub{color:var(--muted);font-size:15px;margin-bottom:28px}
+        .layout{display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start}
+        @media(max-width:820px){.layout{grid-template-columns:1fr}}
+        .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+        .tab{padding:7px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer;transition:all .12s}
+        .tab.active,.tab:hover{border-color:var(--primary);color:var(--primary);background:#EAF0FF}
+        .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .section-title{font-size:15px;font-weight:700;padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .count-chip{background:#EAF0FF;color:var(--primary);font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+        table{width:100%;border-collapse:collapse}
+        th{text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:9px 16px;border-bottom:1px solid var(--border)}
+        td{padding:11px 16px;font-size:13.5px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#FAFBFC}
+        .nombre{font-weight:600}
+        .role-badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700}
+        .r-medico{background:#DBEAFE;color:#1D4ED8}.r-paciente{background:#D1FAE5;color:#065F46}
+        .r-recepcionista{background:#FEF3C7;color:#D97706}.r-administrador{background:#F3E8FF;color:#7C3AED}
+        .empty{padding:24px;text-align:center;color:var(--muted);font-size:13.5px}
+        .form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+        .form-card h2{font-size:15px;font-weight:700;margin-bottom:16px}
+        .field{margin-bottom:12px}
+        label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+        input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink)}
+        input:focus,select:focus{outline:none;border-color:var(--primary)}
+        .btn-submit{width:100%;padding:10px;border-radius:9px;border:none;background:var(--primary);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .14s}
+        .btn-submit:hover{background:#1D4ED8}
+        .alert{padding:12px 16px;border-radius:10px;margin-bottom:20px;font-size:14px;font-weight:600}
+        .alert-ok{background:#D1FAE5;color:#065F46}
+        .alert-err{background:#FEE2E2;color:#DC2626}
+        .hidden{display:none}
+        .user-table{display:block}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/dashboard">Dashboard</a>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+    <main>
+        <div class="wrap">
+            <h1>Usuarios</h1>
+            <p class="sub">{{ usuario.nombre }}</p>
+
+            {% if ok == 'creado' %}
+            <div class="alert alert-ok">Usuario creado correctamente.</div>
+            {% elif error == 'run_ocupado' %}
+            <div class="alert alert-err">Ya existe un usuario con ese RUN.</div>
+            {% elif error == 'especialidad' %}
+            <div class="alert alert-err">Debes seleccionar una especialidad para el médico.</div>
+            {% elif error == 'clinica' %}
+            <div class="alert alert-err">Debes ingresar el RUT de la clínica para la recepcionista.</div>
+            {% elif error %}
+            <div class="alert alert-err">Datos inválidos. Revisa el formulario.</div>
+            {% endif %}
+
+            <div class="layout">
+                <!-- Listado de usuarios -->
+                <div>
+                    <div class="tabs">
+                        <button class="tab active" onclick="mostrar('medicos', this)">Médicos ({{ medicos|length }})</button>
+                        <button class="tab" onclick="mostrar('recepcionistas', this)">Recepcionistas ({{ recepcionistas|length }})</button>
+                        <button class="tab" onclick="mostrar('pacientes', this)">Pacientes ({{ pacientes|length }})</button>
+                        <button class="tab" onclick="mostrar('admins', this)">Administradores ({{ admins|length }})</button>
+                    </div>
+
+                    <!-- Médicos -->
+                    <div id="tbl-medicos" class="section user-table">
+                        <div class="section-title">Médicos <span class="count-chip">{{ medicos|length }}</span></div>
+                        {% if medicos %}
+                        <table>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Especialidad</th></tr></thead>
+                            <tbody>
+                                {% for m in medicos %}
+                                <tr>
+                                    <td>{{ m.run_usuario }}</td>
+                                    <td class="nombre">{{ m.nombre }}</td>
+                                    <td style="color:var(--muted)">{{ m.correo }}</td>
+                                    <td>{{ m.especialidad.nombre if m.especialidad else '—' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<div class="empty">Sin médicos registrados.</div>{% endif %}
+                    </div>
+
+                    <!-- Recepcionistas -->
+                    <div id="tbl-recepcionistas" class="section user-table hidden">
+                        <div class="section-title">Recepcionistas <span class="count-chip">{{ recepcionistas|length }}</span></div>
+                        {% if recepcionistas %}
+                        <table>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Clínica RUT</th></tr></thead>
+                            <tbody>
+                                {% for r in recepcionistas %}
+                                <tr>
+                                    <td>{{ r.run_usuario }}</td>
+                                    <td class="nombre">{{ r.nombre }}</td>
+                                    <td style="color:var(--muted)">{{ r.correo }}</td>
+                                    <td>{{ r.clinica_rut }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<div class="empty">Sin recepcionistas registradas.</div>{% endif %}
+                    </div>
+
+                    <!-- Pacientes -->
+                    <div id="tbl-pacientes" class="section user-table hidden">
+                        <div class="section-title">Pacientes <span class="count-chip">{{ pacientes|length }}</span></div>
+                        {% if pacientes %}
+                        <table>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Teléfono</th></tr></thead>
+                            <tbody>
+                                {% for p in pacientes %}
+                                <tr>
+                                    <td>{{ p.run_usuario }}</td>
+                                    <td class="nombre">{{ p.nombre }}</td>
+                                    <td style="color:var(--muted)">{{ p.correo }}</td>
+                                    <td style="color:var(--muted)">{{ p.telefono }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<div class="empty">Sin pacientes registrados.</div>{% endif %}
+                    </div>
+
+                    <!-- Administradores -->
+                    <div id="tbl-admins" class="section user-table hidden">
+                        <div class="section-title">Administradores <span class="count-chip">{{ admins|length }}</span></div>
+                        {% if admins %}
+                        <table>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th></tr></thead>
+                            <tbody>
+                                {% for a in admins %}
+                                <tr>
+                                    <td>{{ a.run_usuario }}</td>
+                                    <td class="nombre">{{ a.nombre }}</td>
+                                    <td style="color:var(--muted)">{{ a.correo }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}<div class="empty">Sin administradores registrados.</div>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Formulario de nuevo usuario -->
+                <div class="form-card">
+                    <h2>Nuevo usuario</h2>
+                    <form method="post" action="/usuarios/nuevo">
+                        <div class="field">
+                            <label for="rol">Rol</label>
+                            <select id="rol" name="rol" required onchange="actualizarCampos()">
+                                <option value="" disabled selected>Selecciona rol</option>
+                                <option value="PACIENTE">Paciente</option>
+                                <option value="MEDICO">Médico</option>
+                                <option value="RECEPCIONISTA">Recepcionista</option>
+                                <option value="ADMINISTRADOR">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="run_usuario">RUN (sin dígito verificador)</label>
+                            <input type="number" id="run_usuario" name="run_usuario" min="1" required />
+                        </div>
+                        <div class="field">
+                            <label for="nombre">Nombre completo</label>
+                            <input type="text" id="nombre" name="nombre" maxlength="150" required />
+                        </div>
+                        <div class="field">
+                            <label for="correo">Correo electrónico</label>
+                            <input type="email" id="correo" name="correo" required />
+                        </div>
+                        <div class="field">
+                            <label for="telefono">Teléfono</label>
+                            <input type="number" id="telefono" name="telefono" min="1" required />
+                        </div>
+                        <div class="field">
+                            <label for="password">Contraseña (para iniciar sesión)</label>
+                            <input type="password" id="password" name="password" minlength="4" maxlength="128" />
+                        </div>
+                        <!-- Campo médico -->
+                        <div class="field hidden" id="campo-especialidad">
+                            <label for="especialidad_id">Especialidad</label>
+                            <select id="especialidad_id" name="especialidad_id">
+                                <option value="" disabled selected>Selecciona especialidad</option>
+                                {% for esp in especialidades %}
+                                <option value="{{ esp.id }}">{{ esp.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Campo recepcionista -->
+                        <div class="field hidden" id="campo-clinica">
+                            <label for="clinica_rut">RUT de la clínica</label>
+                            <input type="text" id="clinica_rut" name="clinica_rut" maxlength="20" placeholder="Ej. 76123456-7" />
+                        </div>
+                        <button class="btn-submit" type="submit">Crear usuario</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        const tablas = ['medicos','recepcionistas','pacientes','admins'];
+        function mostrar(id, btn) {
+            tablas.forEach(t => document.getElementById('tbl-' + t).classList.add('hidden'));
+            document.getElementById('tbl-' + id).classList.remove('hidden');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        function actualizarCampos() {
+            const rol = document.getElementById('rol').value;
+            document.getElementById('campo-especialidad').classList.toggle('hidden', rol !== 'MEDICO');
+            document.getElementById('campo-clinica').classList.toggle('hidden', rol !== 'RECEPCIONISTA');
+        }
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ from app.backend.core.database import get_db
 from app.backend.domain.enums import RolUsuario
 from app.backend.models.derivacion import DerivacionORM
 from app.backend.models.especialidades import EspecialidadORM
+from app.backend.models.mensajes import MensajeORM
 from app.backend.models.usuarios import UsuarioORM
 from app.backend.repositories.derivaciones import RepositorioDerivaciones
 from app.backend.schemas.derivaciones import DerivacionCrear
@@ -81,6 +82,17 @@ def nueva_derivacion(
             dias_vigencia=dias_vigencia,
         )
         emitir_derivacion(db, datos)
+        contenido = (
+            f"Tu médico {usuario.nombre} te ha derivado a {especialidad_destino}. "
+            + (f"Motivo: {motivo}. " if motivo else "")
+            + "Puedes reservar una hora en esa especialidad desde el portal."
+        )
+        db.add(MensajeORM(
+            paciente_id=paciente_id,
+            tipo="DERIVACION",
+            contenido=contenido,
+        ))
+        db.commit()
     except Exception:
         pass
 
