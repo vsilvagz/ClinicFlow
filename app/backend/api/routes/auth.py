@@ -34,6 +34,7 @@ def _tarjetas_portal(rol: RolUsuario) -> list[dict]:
         return [
             {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
             {"titulo": "Agenda médica", "desc": "Visualiza la agenda de todos los médicos.", "href": "/agenda"},
+            {"titulo": "Configurar agendas", "desc": "Horarios, bloqueos y suspensiones de cada médico.", "href": "/admin/agendas"},
             {"titulo": "Especialidades", "desc": "Administra el catálogo de especialidades.", "href": "/especialidades"},
             {"titulo": "Lista de espera", "desc": "Supervisa los pacientes en espera.", "href": "/lista-espera"},
             {"titulo": "Usuarios", "desc": "Crea y administra usuarios del sistema.", "href": "/usuarios"},
