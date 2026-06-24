@@ -1,3 +1,43 @@
+{% macro gestionar(u) %}
+<details class="manage">
+    <summary>Gestionar</summary>
+    <div class="panel">
+        <form class="mini" method="post" action="/usuarios/{{ u.run_usuario }}/editar">
+            <input name="nombre" value="{{ u.nombre }}" maxlength="150" required />
+            <input name="correo" type="email" value="{{ u.correo }}" required />
+            <input name="telefono" type="number" value="{{ u.telefono }}" min="1" required />
+            <button type="submit">Guardar datos</button>
+        </form>
+        <hr />
+        <form class="mini" method="post" action="/usuarios/{{ u.run_usuario }}/password">
+            <input name="password" type="password" placeholder="Nueva contraseña" minlength="4" maxlength="128" required />
+            <button type="submit">Resetear clave</button>
+        </form>
+        <hr />
+        <form class="mini {{ 'danger' if u.activo else '' }}" method="post" action="/usuarios/{{ u.run_usuario }}/estado">
+            <input type="hidden" name="activo" value="{{ 0 if u.activo else 1 }}" />
+            <button type="submit">{{ 'Desactivar usuario' if u.activo else 'Reactivar usuario' }}</button>
+        </form>
+        <hr />
+        <form class="mini" method="post" action="/usuarios/{{ u.run_usuario }}/rol">
+            <select name="rol">
+                <option value="PACIENTE" {% if u.rol.name == 'PACIENTE' %}selected{% endif %}>Paciente</option>
+                <option value="MEDICO" {% if u.rol.name == 'MEDICO' %}selected{% endif %}>Médico</option>
+                <option value="RECEPCIONISTA" {% if u.rol.name == 'RECEPCIONISTA' %}selected{% endif %}>Recepcionista</option>
+                <option value="ADMINISTRADOR" {% if u.rol.name == 'ADMINISTRADOR' %}selected{% endif %}>Administrador</option>
+            </select>
+            <select name="especialidad_id">
+                <option value="">Especialidad (si médico)</option>
+                {% for esp in especialidades %}
+                <option value="{{ esp.id }}">{{ esp.nombre }}</option>
+                {% endfor %}
+            </select>
+            <input name="clinica_rut" placeholder="Clínica RUT (si recep.)" maxlength="20" />
+            <button type="submit">Cambiar rol</button>
+        </form>
+    </div>
+</details>
+{% endmacro %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -56,6 +96,20 @@
         .alert-err{background:#FEE2E2;color:#DC2626}
         .hidden{display:none}
         .user-table{display:block}
+        .badge-st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700}
+        .st-activo{background:#D1FAE5;color:#065F46}.st-inactivo{background:#FEE2E2;color:#B91C1C}
+        details.manage{font-size:13px}
+        details.manage>summary{cursor:pointer;color:var(--primary);font-weight:700;font-size:12.5px;list-style:none}
+        details.manage>summary::-webkit-details-marker{display:none}
+        details.manage>summary::before{content:"⚙ ";}
+        .panel{margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#FBFCFD;display:flex;flex-direction:column;gap:10px;min-width:260px}
+        .mini{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
+        .mini input,.mini select{flex:1;min-width:96px;padding:6px 8px;font-size:12.5px;border:1px solid var(--border);border-radius:7px}
+        .mini button{padding:6px 10px;font-size:12px;font-weight:700;border:none;border-radius:7px;background:var(--primary);color:#fff;cursor:pointer;white-space:nowrap}
+        .mini button:hover{background:#1D4ED8}
+        .mini.danger button{background:#fff;color:#B91C1C;border:1px solid #FCA5A5}
+        .mini.danger button:hover{background:#FEE2E2}
+        .panel hr{border:none;border-top:1px solid var(--border);margin:2px 0}
     </style>
 </head>
 <body>
@@ -75,12 +129,28 @@
 
             {% if ok == 'creado' %}
             <div class="alert alert-ok">Usuario creado correctamente.</div>
+            {% elif ok == 'editado' %}
+            <div class="alert alert-ok">Datos actualizados.</div>
+            {% elif ok == 'estado' %}
+            <div class="alert alert-ok">Estado del usuario actualizado.</div>
+            {% elif ok == 'password' %}
+            <div class="alert alert-ok">Contraseña restablecida.</div>
+            {% elif ok == 'rol' %}
+            <div class="alert alert-ok">Rol actualizado.</div>
             {% elif error == 'run_ocupado' %}
             <div class="alert alert-err">Ya existe un usuario con ese RUN.</div>
             {% elif error == 'especialidad' %}
             <div class="alert alert-err">Debes seleccionar una especialidad para el médico.</div>
             {% elif error == 'clinica' %}
             <div class="alert alert-err">Debes ingresar el RUT de la clínica para la recepcionista.</div>
+            {% elif error == 'no_encontrado' %}
+            <div class="alert alert-err">No se encontró el usuario.</div>
+            {% elif error == 'ultimo_admin' %}
+            <div class="alert alert-err">No puedes dejar al sistema sin administradores activos.</div>
+            {% elif error == 'auto_baja' %}
+            <div class="alert alert-err">No puedes desactivarte a ti mismo.</div>
+            {% elif error == 'password' %}
+            <div class="alert alert-err">La contraseña debe tener al menos 4 caracteres.</div>
             {% elif error %}
             <div class="alert alert-err">Datos inválidos. Revisa el formulario.</div>
             {% endif %}
@@ -100,7 +170,7 @@
                         <div class="section-title">Médicos <span class="count-chip">{{ medicos|length }}</span></div>
                         {% if medicos %}
                         <table>
-                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Especialidad</th></tr></thead>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Especialidad</th><th>Estado</th><th>Gestión</th></tr></thead>
                             <tbody>
                                 {% for m in medicos %}
                                 <tr>
@@ -108,6 +178,8 @@
                                     <td class="nombre">{{ m.nombre }}</td>
                                     <td style="color:var(--muted)">{{ m.correo }}</td>
                                     <td>{{ m.especialidad.nombre if m.especialidad else '—' }}</td>
+                                    <td><span class="badge-st {{ 'st-activo' if m.activo else 'st-inactivo' }}">{{ 'Activo' if m.activo else 'Inactivo' }}</span></td>
+                                    <td>{{ gestionar(m) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -120,7 +192,7 @@
                         <div class="section-title">Recepcionistas <span class="count-chip">{{ recepcionistas|length }}</span></div>
                         {% if recepcionistas %}
                         <table>
-                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Clínica RUT</th></tr></thead>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Clínica RUT</th><th>Estado</th><th>Gestión</th></tr></thead>
                             <tbody>
                                 {% for r in recepcionistas %}
                                 <tr>
@@ -128,6 +200,8 @@
                                     <td class="nombre">{{ r.nombre }}</td>
                                     <td style="color:var(--muted)">{{ r.correo }}</td>
                                     <td>{{ r.clinica_rut }}</td>
+                                    <td><span class="badge-st {{ 'st-activo' if r.activo else 'st-inactivo' }}">{{ 'Activo' if r.activo else 'Inactivo' }}</span></td>
+                                    <td>{{ gestionar(r) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -140,7 +214,7 @@
                         <div class="section-title">Pacientes <span class="count-chip">{{ pacientes|length }}</span></div>
                         {% if pacientes %}
                         <table>
-                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Teléfono</th></tr></thead>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Gestión</th></tr></thead>
                             <tbody>
                                 {% for p in pacientes %}
                                 <tr>
@@ -148,6 +222,8 @@
                                     <td class="nombre">{{ p.nombre }}</td>
                                     <td style="color:var(--muted)">{{ p.correo }}</td>
                                     <td style="color:var(--muted)">{{ p.telefono }}</td>
+                                    <td><span class="badge-st {{ 'st-activo' if p.activo else 'st-inactivo' }}">{{ 'Activo' if p.activo else 'Inactivo' }}</span></td>
+                                    <td>{{ gestionar(p) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -160,13 +236,15 @@
                         <div class="section-title">Administradores <span class="count-chip">{{ admins|length }}</span></div>
                         {% if admins %}
                         <table>
-                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th></tr></thead>
+                            <thead><tr><th>RUN</th><th>Nombre</th><th>Correo</th><th>Estado</th><th>Gestión</th></tr></thead>
                             <tbody>
                                 {% for a in admins %}
                                 <tr>
                                     <td>{{ a.run_usuario }}</td>
                                     <td class="nombre">{{ a.nombre }}</td>
                                     <td style="color:var(--muted)">{{ a.correo }}</td>
+                                    <td><span class="badge-st {{ 'st-activo' if a.activo else 'st-inactivo' }}">{{ 'Activo' if a.activo else 'Inactivo' }}</span></td>
+                                    <td>{{ gestionar(a) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

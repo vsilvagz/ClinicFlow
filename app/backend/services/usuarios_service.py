@@ -5,10 +5,13 @@ servicio valida las reglas que el esquema no puede comprobar por sí solo, como
 que la especialidad de un médico exista realmente.
 """
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.backend.core.security import hash_password, verificar_password
+from app.backend.domain.enums import RolUsuario
 from app.backend.domain.errores import MedicoNoEncontrado
+from app.backend.domain.usuarios import Administrador, Usuario
 from app.backend.models.especialidades import EspecialidadORM
 from app.backend.models.usuarios import (
     AdministradorORM,
@@ -28,6 +31,14 @@ from app.backend.schemas.usuarios import (
 
 class UsuarioYaExiste(Exception):
     """Ya hay un usuario registrado con ese RUN."""
+
+
+class UsuarioNoEncontrado(Exception):
+    """No existe un usuario con el RUN indicado."""
+
+
+class UltimoAdministrador(Exception):
+    """La operación dejaría al sistema sin administradores activos."""
 
 
 class EspecialidadNoEncontrada(Exception):
@@ -139,7 +150,9 @@ def autenticar(db: Session, run: int, password: str) -> UsuarioORM | None:
     incorrecta o el usuario no tiene credenciales configuradas.
     """
     usuario = db.get(UsuarioORM, run)
-    if usuario is None or not verificar_password(password, usuario.password_hash):
+    if usuario is None or not usuario.activo:
+        return None
+    if not verificar_password(password, usuario.password_hash):
         return None
     return usuario
 
@@ -149,3 +162,139 @@ def obtener_medico(db: Session, run: int) -> MedicoORM:
     if medico is None:
         raise MedicoNoEncontrado(f"No existe un médico con RUN {run}.")
     return medico
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Administración de usuarios (acciones del administrador).
+# El servicio reconstruye los objetos de dominio, ejecuta el método del
+# `Administrador` —donde viven las reglas— y vuelca el resultado al ORM.
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _a_usuario_dominio(orm: UsuarioORM) -> Usuario:
+    """Objeto de dominio transitorio para validar y aplicar comportamiento."""
+    dom = Usuario(orm.run_usuario, orm.nombre, orm.correo, orm.telefono)
+    dom._activo = orm.activo
+    return dom
+
+
+def _a_admin_dominio(orm: UsuarioORM) -> Administrador:
+    """Reconstruye al administrador que ejecuta la acción."""
+    return Administrador(orm.run_usuario, orm.nombre, orm.correo, orm.telefono)
+
+
+def _administradores_activos_distintos_de(db: Session, run: int) -> int:
+    """Cuenta administradores activos cuyo RUN no es el indicado."""
+    return db.scalar(
+        select(func.count())
+        .select_from(AdministradorORM)
+        .where(AdministradorORM.run_usuario != run, AdministradorORM.activo.is_(True))
+    )
+
+
+def editar_usuario(
+    db: Session,
+    actor: UsuarioORM,
+    run: int,
+    nombre: str | None = None,
+    correo: str | None = None,
+    telefono: int | None = None,
+) -> UsuarioORM:
+    """Actualiza los datos de contacto de un usuario (valida el correo)."""
+    objetivo = db.get(UsuarioORM, run)
+    if objetivo is None:
+        raise UsuarioNoEncontrado(f"No existe un usuario con RUN {run}.")
+
+    dom = _a_usuario_dominio(objetivo)
+    _a_admin_dominio(actor).editar_usuario(dom, nombre=nombre, correo=correo, telefono=telefono)
+
+    objetivo.nombre = dom.nombre
+    objetivo.correo = dom.correo
+    objetivo.telefono = dom.telefono
+    db.commit()
+    db.refresh(objetivo)
+    return objetivo
+
+
+def cambiar_estado_usuario(
+    db: Session, actor: UsuarioORM, run: int, activo: bool
+) -> UsuarioORM:
+    """Activa o desactiva a un usuario, sin dejar al sistema sin administradores."""
+    objetivo = db.get(UsuarioORM, run)
+    if objetivo is None:
+        raise UsuarioNoEncontrado(f"No existe un usuario con RUN {run}.")
+
+    admin = _a_admin_dominio(actor)
+    dom = _a_usuario_dominio(objetivo)
+    if activo:
+        admin.reactivar_usuario(dom)
+    else:
+        if (
+            objetivo.rol == RolUsuario.ADMINISTRADOR
+            and objetivo.activo
+            and _administradores_activos_distintos_de(db, run) == 0
+        ):
+            raise UltimoAdministrador("No puedes desactivar al último administrador activo.")
+        admin.desactivar_usuario(dom)  # lanza ValueError si se desactiva a sí mismo
+
+    objetivo.activo = dom.activo
+    db.commit()
+    db.refresh(objetivo)
+    return objetivo
+
+
+def resetear_password(db: Session, run: int, nueva: str) -> UsuarioORM:
+    """Asigna una nueva contraseña a un usuario (concern de seguridad: solo aquí)."""
+    objetivo = db.get(UsuarioORM, run)
+    if objetivo is None:
+        raise UsuarioNoEncontrado(f"No existe un usuario con RUN {run}.")
+    if not nueva or len(nueva) < 4:
+        raise ValueError("La contraseña debe tener al menos 4 caracteres.")
+
+    objetivo.password_hash = hash_password(nueva)
+    db.commit()
+    db.refresh(objetivo)
+    return objetivo
+
+
+def cambiar_rol(
+    db: Session,
+    run: int,
+    nuevo_rol: RolUsuario,
+    especialidad_id: int | None = None,
+    clinica_rut: str | None = None,
+) -> UsuarioORM:
+    """Reclasifica a un usuario cambiando el discriminador de la herencia.
+
+    Es una operación de persistencia (no de dominio): se actualiza la columna
+    `rol` y los campos propios del nuevo rol, limpiando los que no aplican.
+    """
+    objetivo = db.get(UsuarioORM, run)
+    if objetivo is None:
+        raise UsuarioNoEncontrado(f"No existe un usuario con RUN {run}.")
+
+    valores = {"rol": nuevo_rol, "especialidad_id": None, "clinica_rut": None}
+    if nuevo_rol == RolUsuario.MEDICO:
+        if not especialidad_id or db.get(EspecialidadORM, especialidad_id) is None:
+            raise EspecialidadNoEncontrada("Un médico necesita una especialidad válida.")
+        valores["especialidad_id"] = especialidad_id
+    elif nuevo_rol == RolUsuario.RECEPCIONISTA:
+        rut = (clinica_rut or "").strip()
+        if not rut:
+            raise ValueError("Una recepcionista necesita el RUT de una clínica.")
+        valores["clinica_rut"] = rut
+
+    if (
+        objetivo.rol == RolUsuario.ADMINISTRADOR
+        and nuevo_rol != RolUsuario.ADMINISTRADOR
+        and objetivo.activo
+        and _administradores_activos_distintos_de(db, run) == 0
+    ):
+        raise UltimoAdministrador("No puedes quitar el rol al último administrador activo.")
+
+    tabla = UsuarioORM.__table__
+    db.execute(tabla.update().where(tabla.c.run_usuario == run).values(**valores))
+    db.commit()
+    # Cambió la subclase polimórfica: se descarta la instancia en memoria para
+    # que al releer se materialice como el tipo correcto.
+    db.expunge_all()
+    return db.get(UsuarioORM, run)

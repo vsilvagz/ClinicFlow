@@ -16,9 +16,10 @@ natural de tener una sola tabla para toda la jerarquía.
 
 from typing import TYPE_CHECKING
 
-# BigInteger: entero grande (para teléfonos). Enum SQL: guarda un valor de enum.
-# ForeignKey: declara una clave foránea hacia otra tabla. String: texto.
-from sqlalchemy import BigInteger, Enum as SQLEnum, ForeignKey, String
+# BigInteger: entero grande (para teléfonos). Boolean: bandera verdadero/falso.
+# Enum SQL: guarda un valor de enum. ForeignKey: clave foránea. String: texto.
+# text: literal SQL para el valor por defecto a nivel de base de datos.
+from sqlalchemy import BigInteger, Boolean, Enum as SQLEnum, ForeignKey, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 # Reutilizamos el MISMO enum del dominio como tipo de la columna `rol`.
@@ -58,6 +59,12 @@ class UsuarioORM(Base):
     # password_hash: hash bcrypt de la contraseña (nunca se guarda en texto plano).
     # Queda vacío para usuarios sin credenciales (p. ej. pacientes que solo reservan).
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+
+    # activo: usuarios dados de baja por el administrador no pueden iniciar sesión.
+    # server_default asegura el valor en la tabla; default lo aplica al insertar.
+    activo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
     # __mapper_args__ configura la herencia:
     #   polymorphic_on=rol         → columna que distingue los tipos.

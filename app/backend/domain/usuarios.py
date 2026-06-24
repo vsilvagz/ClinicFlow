@@ -312,7 +312,7 @@ class Administrador(Usuario):
 
     def desactivar_usuario(self, usuario: Usuario) -> None:
         """Da de baja a un usuario para que no pueda iniciar sesión ni operar."""
-        if usuario is self:
+        if usuario.RUN_usuario == self.RUN_usuario:
             raise ValueError("Un administrador no puede desactivarse a sí mismo.")
         usuario._activo = False
 
