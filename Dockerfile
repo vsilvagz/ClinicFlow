@@ -24,4 +24,6 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Formato shell (no exec) para que ${PORT} se expanda: plataformas como Railway o
+# Render inyectan el puerto por la variable PORT. En local/compose, sin PORT, usa 8000.
+CMD uvicorn app.backend.main:app --host 0.0.0.0 --port ${PORT:-8000}
