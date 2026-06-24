@@ -9,13 +9,14 @@ el resultado de vuelta al ORM. Así la lógica vive en un solo lugar (`domain/`)
 es testeable sin base de datos y la persistencia solo "traduce".
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from app.backend.domain.citas import Cita
 from app.backend.domain.errores import (
+    CitaDuplicadaEnPeriodo,
     CitaNoEncontrada,
     MedicoNoEncontrado,
     PacienteNoEncontrado,
@@ -24,6 +25,10 @@ from app.backend.models.citas import CitaORM
 from app.backend.repositories.citas import RepositorioCitas
 from app.backend.repositories.usuarios import RepositorioUsuarios
 from app.backend.schemas.citas import CitaCrear, CitaReagendar
+
+# Días mínimos que deben separar dos citas activas del mismo paciente y
+# especialidad: evita que acumule varias horas de un mismo tipo muy seguidas.
+DIAS_MINIMOS_ENTRE_CITAS_ESPECIALIDAD = 7
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -93,6 +98,23 @@ def crear_cita(db: Session, datos: CitaCrear, ahora: datetime | None = None) -> 
         motivo=datos.motivo,
         ahora=ahora,
     )
+
+    # Regla: el paciente no puede tener otra cita activa de la misma especialidad
+    # dentro de unos pocos días (antes o después) de la hora solicitada.
+    if especialidad:
+        ventana = timedelta(days=DIAS_MINIMOS_ENTRE_CITAS_ESPECIALIDAD)
+        cercanas = citas.listar_activas_de_paciente_por_especialidad(
+            datos.paciente_id,
+            especialidad,
+            cita_dom.inicio - ventana,
+            cita_dom.inicio + ventana,
+        )
+        if cercanas:
+            raise CitaDuplicadaEnPeriodo(
+                f"El paciente {datos.paciente_id} ya tiene una cita de "
+                f"{especialidad} dentro de {DIAS_MINIMOS_ENTRE_CITAS_ESPECIALIDAD} "
+                f"días de la hora solicitada."
+            )
 
     # Conflicto de agenda: se compara contra las citas activas del médico.
     existentes = [_a_dominio(c) for c in citas.listar_activas_de_medico(datos.medico_id)]
@@ -175,3 +197,8 @@ def reagendar_cita(
 
 def listar_citas_de_paciente(db: Session, paciente_id: int) -> list[CitaORM]:
     return RepositorioCitas(db).listar_de_paciente(paciente_id)
+
+
+def obtener_cita(db: Session, cita_id: UUID) -> CitaORM | None:
+    """Devuelve la cita con ese id, o None si no existe."""
+    return RepositorioCitas(db).obtener(cita_id)

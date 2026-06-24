@@ -83,7 +83,9 @@
             <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
             <span class="spacer"></span>
             <a class="link" href="/">Inicio</a>
-            <a class="link" href="/docs">API</a>
+            {% if usuario %}
+            <a class="link" href="/portal">Portal</a>
+            {% endif %}
         </div>
     </header>
 
@@ -102,6 +104,8 @@
                 <div class="banner err">Esa hora ya no está disponible. Elige otra.</div>
             {% elif error == "usuario" %}
                 <div class="banner err">No se pudo identificar al paciente o al médico.</div>
+            {% elif error == "repetida" %}
+                <div class="banner err">Ya tienes una hora de esta especialidad dentro de {{ dias_limite }} días de la fecha elegida. Solo puedes reservar una en ese periodo.</div>
             {% elif error == "run" %}
                 <div class="banner err">El RUT ingresado no es válido.</div>
             {% elif error == "ocupado" %}

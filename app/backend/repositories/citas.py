@@ -24,6 +24,27 @@ class RepositorioCitas(RepositorioBase[CitaORM]):
             )
         )
 
+    def listar_activas_de_paciente_por_especialidad(
+        self, paciente_id: int, especialidad: str, desde: datetime, hasta: datetime
+    ) -> list[CitaORM]:
+        """Citas vigentes de un paciente, de una especialidad, dentro de un rango.
+
+        Sirve para impedir que un paciente acumule varias citas de la misma
+        especialidad muy seguidas: el servicio consulta la ventana alrededor de la
+        hora pedida antes de crear la cita.
+        """
+        return list(
+            self.db.scalars(
+                select(CitaORM).where(
+                    CitaORM.paciente_id == paciente_id,
+                    CitaORM.especialidad == especialidad,
+                    CitaORM.estado.in_(ESTADOS_ACTIVOS),
+                    CitaORM.inicio >= desde,
+                    CitaORM.inicio <= hasta,
+                )
+            )
+        )
+
     def listar_del_dia(self, fecha: date) -> list[CitaORM]:
         """Todas las citas de un día (para el dashboard global)."""
         inicio = datetime.combine(fecha, time.min)

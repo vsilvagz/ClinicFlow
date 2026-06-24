@@ -15,6 +15,7 @@ aquí solo se adapta al canal web.
 """
 
 from datetime import date, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -28,6 +29,7 @@ from app.backend.core.database import get_db
 from app.backend.core.rut import parsear_run
 from app.backend.domain.enums import RolUsuario
 from app.backend.domain.errores import (
+    CitaDuplicadaEnPeriodo,
     CitaEnPasadoError,
     ConflictoDeAgenda,
     MedicoNoEncontrado,
@@ -37,7 +39,11 @@ from app.backend.models.usuarios import UsuarioORM
 from app.backend.schemas.citas import CitaCrear
 from app.backend.schemas.usuarios import PacienteCrear
 from app.backend.services.agendas_service import slots_disponibles_de_medico
-from app.backend.services.citas_service import crear_cita
+from app.backend.services.citas_service import (
+    DIAS_MINIMOS_ENTRE_CITAS_ESPECIALIDAD,
+    crear_cita,
+    obtener_cita,
+)
 from app.backend.services.especialidades_service import (
     listar_especialidades,
     obtener_especialidad,
@@ -107,6 +113,8 @@ def pagina_reservar(
         {
             "request": request,
             "app_name": settings.app_name,
+            "usuario": usuario,
+            "dias_limite": DIAS_MINIMOS_ENTRE_CITAS_ESPECIALIDAD,
             "paciente": paciente,
             "sesion_paciente": sesion_paciente,
             "registrar": registrar,
@@ -200,10 +208,35 @@ def reservar_web(
         motivo=motivo.strip(),
     )
     try:
-        crear_cita(db, datos)
+        cita = crear_cita(db, datos)
     except (PacienteNoEncontrado, MedicoNoEncontrado):
         return RedirectResponse(f"{base}&error=usuario", status_code=303)
+    except CitaDuplicadaEnPeriodo:
+        return RedirectResponse(f"{base}&error=repetida", status_code=303)
     except (ConflictoDeAgenda, CitaEnPasadoError):
         return RedirectResponse(f"{base}&error=nodisponible", status_code=303)
 
-    return RedirectResponse(f"{base}&creada=1", status_code=303)
+    # Tras reservar, se muestra una página con el detalle de la cita creada.
+    return RedirectResponse(f"/reserva/{cita.id}", status_code=303)
+
+
+@router.get("/reserva/{cita_id}", include_in_schema=False)
+def pagina_reserva(
+    cita_id: UUID,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM | None = Depends(usuario_actual),
+):
+    """Muestra el detalle de una cita recién reservada."""
+    cita = obtener_cita(db, cita_id)
+    if cita is None:
+        return RedirectResponse("/reservar", status_code=303)
+    return templates.TemplateResponse(
+        "reserva.html",
+        {
+            "request": request,
+            "app_name": settings.app_name,
+            "usuario": usuario,
+            "cita": cita,
+        },
+    )

@@ -17,6 +17,10 @@ class ConflictoDeAgenda(ClinicFlowError):
     """El horario solicitado se solapa con una cita existente o está bloqueado."""
 
 
+class CitaDuplicadaEnPeriodo(ClinicFlowError):
+    """El paciente ya tiene una cita activa de la misma especialidad demasiado cercana."""
+
+
 class HorarioNoDisponible(ClinicFlowError):
     """El bloque horario solicitado está fuera del horario de atención del médico."""
 
