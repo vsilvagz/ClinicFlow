@@ -31,19 +31,22 @@ def _tarjetas_portal(rol: RolUsuario) -> list[dict]:
     mis_citas = {"titulo": "Mis citas", "desc": "Revisa y cancela tus próximas horas.", "href": None}
     if rol == RolUsuario.ADMINISTRADOR:
         return [
-            {"titulo": "Usuarios", "desc": "Administra usuarios y sus roles.", "href": None},
+            {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
+            {"titulo": "Agenda médica", "desc": "Visualiza la agenda de todos los médicos.", "href": "/agenda"},
             {"titulo": "Especialidades", "desc": "Administra el catálogo de especialidades.", "href": "/especialidades"},
-            {"titulo": "Lista de espera", "desc": "Supervisa los pacientes en espera.", "href": None},
             {"titulo": "API", "desc": "Documentación interactiva del sistema.", "href": "/docs"},
         ]
     if rol == RolUsuario.RECEPCIONISTA:
         return [
+            {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
+            {"titulo": "Agenda médica", "desc": "Visualiza la agenda de todos los médicos.", "href": "/agenda"},
             {"titulo": "Gestión de citas", "desc": "Confirma, cancela y reagenda horas.", "href": "/reservar"},
             {"titulo": "Lista de espera", "desc": "Inscribe y asigna cupos a pacientes.", "href": None},
         ]
     if rol == RolUsuario.MEDICO:
         return [
-            {"titulo": "Mi agenda", "desc": "Revisa tus horas, bloquea o suspende.", "href": None},
+            {"titulo": "Dashboard", "desc": "Tus citas del día y métricas.", "href": "/dashboard"},
+            {"titulo": "Mi agenda", "desc": "Visualiza tus citas del día por fecha.", "href": "/agenda"},
             {"titulo": "Derivaciones", "desc": "Deriva pacientes a otras especialidades.", "href": None},
         ]
     # Paciente.

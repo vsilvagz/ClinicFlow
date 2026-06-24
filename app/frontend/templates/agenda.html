@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agenda — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:1060px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+
+        main{padding:44px 0 64px}
+        .page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px}
+        .page-header h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em}
+        .page-header p{color:var(--muted);font-size:15px;margin-top:4px}
+
+        /* Navegación de fechas */
+        .date-nav{display:flex;align-items:center;gap:10px}
+        .date-nav a{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:16px;color:var(--ink-2);transition:border-color .14s,background .14s}
+        .date-nav a:hover{border-color:var(--primary);background:#EAF0FF;color:var(--primary)}
+        .date-nav .fecha-actual{font-size:15px;font-weight:700;padding:0 8px}
+
+        /* Tarjeta por médico */
+        .medico-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;overflow:hidden}
+        .medico-header{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--border)}
+        .medico-avatar{width:40px;height:40px;border-radius:12px;background:#EAF0FF;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none}
+        .medico-info h3{font-size:15.5px;font-weight:700}
+        .medico-info span{font-size:13px;color:var(--muted)}
+        .cita-count{margin-left:auto;background:#EAF0FF;color:var(--primary);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+
+        /* Lista de citas */
+        .citas-lista{padding:0 8px}
+        .cita-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:10px;margin:6px 0}
+        .cita-row:hover{background:#FAFBFC}
+        .cita-hora{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);min-width:52px}
+        .cita-paciente{flex:1;font-size:14px;font-weight:600}
+        .cita-motivo{font-size:13px;color:var(--muted);flex:1}
+
+        .empty-agenda{padding:24px;text-align:center;color:var(--muted);font-size:14px}
+
+        /* Badges de estado */
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+        .b-pendiente {background:#FEF3C7;color:#D97706}
+        .b-confirmada{background:#DBEAFE;color:#1D4ED8}
+        .b-cancelada {background:#FEE2E2;color:#DC2626}
+        .b-reagendada{background:#F3F4F6;color:#374151}
+        .b-completada{background:#D1FAE5;color:#065F46}
+        .b-no_asistio{background:#FFEDD5;color:#C2410C}
+
+        .empty-page{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px}
+        .empty-page strong{display:block;font-size:18px;color:var(--ink);font-weight:700;margin-bottom:8px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/dashboard">Dashboard</a>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <div class="page-header">
+                <div>
+                    <h1>Agenda médica</h1>
+                    <p>{{ usuario.nombre }}</p>
+                </div>
+                <div class="date-nav">
+                    <a href="/agenda?fecha={{ dia_anterior }}" title="Día anterior">&#8592;</a>
+                    <span class="fecha-actual">{{ dia_display }}</span>
+                    <a href="/agenda?fecha={{ dia_siguiente }}" title="Día siguiente">&#8594;</a>
+                </div>
+            </div>
+
+            {% if agenda %}
+                {% for item in agenda %}
+                <div class="medico-card">
+                    <div class="medico-header">
+                        <div class="medico-avatar">
+                            {{ item.medico.nombre[0] | upper }}
+                        </div>
+                        <div class="medico-info">
+                            <h3>{{ item.medico.nombre }}</h3>
+                            <span>{{ item.medico.especialidad.nombre if item.medico.especialidad else 'Sin especialidad' }}</span>
+                        </div>
+                        <span class="cita-count">{{ item.citas | length }} cita{{ 's' if item.citas | length != 1 else '' }}</span>
+                    </div>
+
+                    {% if item.citas %}
+                    <div class="citas-lista">
+                        {% for cita in item.citas %}
+                        <div class="cita-row">
+                            <span class="cita-hora">{{ cita.inicio.strftime("%H:%M") }}</span>
+                            <span class="cita-paciente">{{ cita.paciente.nombre }}</span>
+                            <span class="cita-motivo">{{ cita.motivo if cita.motivo else cita.especialidad }}</span>
+                            {% set estado = cita.estado.value | lower %}
+                            <span class="badge b-{{ estado }}">
+                                {{ cita.estado.value | replace("_", " ") | capitalize }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-agenda">Sin citas para este día.</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-page">
+                    <strong>Sin médicos registrados</strong>
+                    No hay médicos en el sistema todavía.
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

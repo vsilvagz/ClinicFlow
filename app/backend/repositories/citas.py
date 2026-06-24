@@ -1,5 +1,7 @@
 """Repositorio de citas médicas."""
 
+from datetime import date, datetime, time
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -19,6 +21,34 @@ class RepositorioCitas(RepositorioBase[CitaORM]):
         return list(
             self.db.scalars(
                 select(CitaORM).where(CitaORM.paciente_id == paciente_id)
+            )
+        )
+
+    def listar_del_dia(self, fecha: date) -> list[CitaORM]:
+        """Todas las citas de un día (para el dashboard global)."""
+        inicio = datetime.combine(fecha, time.min)
+        fin = datetime.combine(fecha, time.max)
+        return list(
+            self.db.scalars(
+                select(CitaORM)
+                .where(CitaORM.inicio >= inicio, CitaORM.inicio <= fin)
+                .order_by(CitaORM.inicio)
+            )
+        )
+
+    def listar_del_dia_de_medico(self, medico_id: int, fecha: date) -> list[CitaORM]:
+        """Citas de un médico en un día específico."""
+        inicio = datetime.combine(fecha, time.min)
+        fin = datetime.combine(fecha, time.max)
+        return list(
+            self.db.scalars(
+                select(CitaORM)
+                .where(
+                    CitaORM.medico_id == medico_id,
+                    CitaORM.inicio >= inicio,
+                    CitaORM.inicio <= fin,
+                )
+                .order_by(CitaORM.inicio)
             )
         )
 

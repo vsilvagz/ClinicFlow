@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;
+            --border:#ECEFF3;--primary:#2563EB;--primary-dark:#1D4ED8;--radius:16px;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:1060px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}
+        .logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+
+        main{padding:44px 0 64px}
+        .page-header{margin-bottom:32px}
+        .page-header h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em}
+        .page-header p{color:var(--muted);font-size:15px;margin-top:4px}
+
+        /* Stat cards */
+        .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:36px}
+        .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px}
+        .stat .label{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+        .stat .value{font-size:36px;font-weight:800;letter-spacing:-.03em;margin-top:6px;color:var(--ink)}
+        .stat.blue .value{color:var(--primary)}
+        .stat.yellow .value{color:#D97706}
+        .stat.green .value{color:#059669}
+        .stat.red .value{color:#DC2626}
+
+        /* Sections */
+        .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+        .section-title{font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+        .section-title .count{background:#EAF0FF;color:var(--primary);font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+
+        /* Table */
+        table{width:100%;border-collapse:collapse}
+        th{text-align:left;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:0 12px 10px;border-bottom:1px solid var(--border)}
+        td{padding:12px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#FAFBFC}
+        .hora{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .nombre{font-weight:600}
+        .esp{color:var(--muted);font-size:13px}
+
+        /* Estado badges */
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+        .b-pendiente {background:#FEF3C7;color:#D97706}
+        .b-confirmada{background:#DBEAFE;color:#1D4ED8}
+        .b-cancelada {background:#FEE2E2;color:#DC2626}
+        .b-reagendada{background:#F3F4F6;color:#374151}
+        .b-completada{background:#D1FAE5;color:#065F46}
+        .b-no_asistio{background:#FFEDD5;color:#C2410C}
+
+        /* Empty state */
+        .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:15px}
+
+        /* Conversaciones placeholder */
+        .placeholder{text-align:center;padding:36px 20px}
+        .placeholder .icon{font-size:40px;margin-bottom:12px}
+        .placeholder p{color:var(--muted);font-size:14.5px}
+        .placeholder strong{display:block;font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px}
+
+        /* Espera info */
+        .espera-info{display:flex;align-items:center;gap:16px;padding:8px 0}
+        .espera-num{font-size:48px;font-weight:800;letter-spacing:-.03em;color:var(--primary)}
+        .espera-desc{color:var(--muted);font-size:14.5px}
+        .espera-desc strong{display:block;color:var(--ink);font-size:16px;font-weight:700}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="wrap">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <p>{{ hoy }} — {{ usuario.nombre }}</p>
+            </div>
+
+            <!-- Métricas -->
+            <div class="stats">
+                <div class="stat blue">
+                    <div class="label">Citas hoy</div>
+                    <div class="value">{{ total_citas }}</div>
+                </div>
+                <div class="stat yellow">
+                    <div class="label">Pendientes</div>
+                    <div class="value">{{ pendientes }}</div>
+                </div>
+                <div class="stat green">
+                    <div class="label">Confirmadas</div>
+                    <div class="value">{{ confirmadas }}</div>
+                </div>
+                <div class="stat red">
+                    <div class="label">Canceladas hoy</div>
+                    <div class="value">{{ canceladas }}</div>
+                </div>
+            </div>
+
+            <!-- Citas del día -->
+            <div class="section">
+                <div class="section-title">
+                    Citas del día
+                    <span class="count">{{ total_citas }}</span>
+                    <a href="/agenda" style="margin-left:auto;font-size:13px;font-weight:600;color:var(--primary)">Ver agenda &rarr;</a>
+                </div>
+
+                {% if citas_hoy %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Especialidad</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cita in citas_hoy %}
+                        <tr>
+                            <td class="hora">{{ cita.inicio.strftime("%H:%M") }}</td>
+                            <td class="nombre">{{ cita.paciente.nombre }}</td>
+                            <td>{{ cita.medico.nombre }}</td>
+                            <td class="esp">{{ cita.especialidad }}</td>
+                            <td>
+                                {% set estado = cita.estado.value | lower %}
+                                <span class="badge b-{{ estado }}">
+                                    {{ cita.estado.value | replace("_", " ") | capitalize }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty">No hay citas registradas para hoy.</div>
+                {% endif %}
+            </div>
+
+            <!-- Pacientes en lista de espera -->
+            <div class="section">
+                <div class="section-title">Pacientes en lista de espera</div>
+                <div class="espera-info">
+                    <div class="espera-num">{{ total_espera }}</div>
+                    <div class="espera-desc">
+                        <strong>
+                            {% if total_espera == 1 %}1 paciente esperando{% else %}{{ total_espera }} pacientes esperando{% endif %}
+                        </strong>
+                        Inscripciones activas en todas las especialidades.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de conversaciones -->
+            <div class="section">
+                <div class="section-title">Historial de conversaciones</div>
+                <div class="placeholder">
+                    <div class="icon">💬</div>
+                    <strong>Bot de Telegram próximamente</strong>
+                    <p>Cuando el asistente esté activo, aquí verás el historial<br>de todas las conversaciones con los pacientes.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
