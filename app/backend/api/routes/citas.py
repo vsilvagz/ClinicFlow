@@ -21,16 +21,19 @@ from fastapi.responses import RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.backend.api.deps import usuario_actual
 from app.backend.api.templates import templates
 from app.backend.core.config import settings
 from app.backend.core.database import get_db
 from app.backend.core.rut import parsear_run
+from app.backend.domain.enums import RolUsuario
 from app.backend.domain.errores import (
     CitaEnPasadoError,
     ConflictoDeAgenda,
     MedicoNoEncontrado,
     PacienteNoEncontrado,
 )
+from app.backend.models.usuarios import UsuarioORM
 from app.backend.schemas.citas import CitaCrear
 from app.backend.schemas.usuarios import PacienteCrear
 from app.backend.services.agendas_service import slots_disponibles_de_medico
@@ -63,6 +66,7 @@ def _parsear_fecha(valor: str | None) -> date:
 def pagina_reservar(
     request: Request,
     db: Session = Depends(get_db),
+    usuario: UsuarioORM | None = Depends(usuario_actual),
     paciente_run: int | None = None,
     registrar: int | None = None,
     especialidad_id: int | None = None,
@@ -76,6 +80,17 @@ def pagina_reservar(
     Estando el paciente identificado, el flujo es: elegir especialidad → elegir
     médico de esa especialidad y fecha → elegir una hora libre.
     """
+    # Un paciente con sesión iniciada queda identificado por su RUN: no se le pide.
+    # Otros roles (recepcionista, administrador) sí ingresan el RUN del paciente.
+    sesion_paciente = (
+        paciente_run is None
+        and registrar is None
+        and usuario is not None
+        and usuario.rol == RolUsuario.PACIENTE
+    )
+    if sesion_paciente:
+        paciente_run = usuario.run_usuario
+
     paciente = obtener_paciente(db, paciente_run) if paciente_run else None
     especialidad = obtener_especialidad(db, especialidad_id) if especialidad_id else None
     medicos = (
@@ -93,6 +108,7 @@ def pagina_reservar(
             "request": request,
             "app_name": settings.app_name,
             "paciente": paciente,
+            "sesion_paciente": sesion_paciente,
             "registrar": registrar,
             "especialidades": listar_especialidades(db),
             "especialidad": especialidad,

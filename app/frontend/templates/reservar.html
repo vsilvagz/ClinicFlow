@@ -90,7 +90,11 @@
     <main>
         <div class="wrap">
             <h1>Reservar hora</h1>
-            <p class="sub">Ingresa tu RUT para comenzar a agendar.</p>
+            {% if sesion_paciente %}
+                <p class="sub">Agenda tu cita por especialidad y médico.</p>
+            {% else %}
+                <p class="sub">Ingresa tu RUT para comenzar a agendar.</p>
+            {% endif %}
 
             {% if creada %}
                 <div class="banner ok">¡Hora reservada correctamente!</div>
@@ -154,7 +158,9 @@
                     <div class="name">{{ paciente.nombre }}</div>
                     <div class="run">RUT {{ paciente.run_usuario }}</div>
                 </div>
+                {% if not sesion_paciente %}
                 <a class="change" href="/reservar">Cambiar</a>
+                {% endif %}
             </div>
 
             <!-- Paso 2: elegir especialidad (con autocompletado) -->
