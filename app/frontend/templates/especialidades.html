@@ -56,6 +56,18 @@
         td.desc{color:var(--ink-2)}
         .empty{color:var(--muted);font-size:14.5px;padding:8px 0}
         .count{color:var(--muted);font-size:13.5px;font-weight:600}
+        .pill{display:inline-block;background:#F2F4F7;color:var(--ink-2);font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px}
+        details.manage>summary{cursor:pointer;color:var(--primary);font-weight:700;font-size:13px;list-style:none}
+        details.manage>summary::-webkit-details-marker{display:none}
+        details.manage>summary::before{content:"⚙ ";}
+        .panel{margin-top:10px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#FBFCFD;display:flex;flex-direction:column;gap:8px;min-width:240px}
+        .mini{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
+        .mini input{flex:1;min-width:120px;padding:6px 8px;font-size:12.5px;border:1px solid var(--border);border-radius:7px;background:#fff}
+        .mini button{padding:6px 10px;font-size:12px;font-weight:700;border:none;border-radius:7px;background:var(--primary);color:#fff;cursor:pointer;white-space:nowrap}
+        .mini button:hover{background:var(--primary-dark)}
+        .mini.danger button{background:#fff;color:#B91C1C;border:1px solid #FCA5A5}
+        .mini.danger button:hover{background:#FEE2E2}
+        .panel hr{border:none;border-top:1px solid var(--border);margin:2px 0}
     </style>
 </head>
 <body>
@@ -64,7 +76,7 @@
             <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
             <span class="spacer"></span>
             <a class="link" href="/">Inicio</a>
-            <a class="link" href="/docs">API</a>
+            <a class="link" href="/portal">Portal</a>
         </div>
     </header>
 
@@ -75,8 +87,14 @@
 
             {% if creada %}
                 <div class="banner ok">Especialidad creada correctamente.</div>
+            {% elif ok == "editada" %}
+                <div class="banner ok">Especialidad actualizada.</div>
+            {% elif ok == "eliminada" %}
+                <div class="banner ok">Especialidad eliminada. Sus médicos fueron desactivados.</div>
             {% elif error == "existe" %}
                 <div class="banner err">Ya existe una especialidad con ese nombre.</div>
+            {% elif error == "no_encontrada" %}
+                <div class="banner err">No se encontró la especialidad.</div>
             {% elif error == "invalido" %}
                 <div class="banner err">El nombre es obligatorio (máximo 100 caracteres).</div>
             {% endif %}
@@ -103,7 +121,7 @@
                 {% if especialidades %}
                     <table>
                         <thead>
-                            <tr><th>ID</th><th>Nombre</th><th>Descripción</th></tr>
+                            <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Médicos</th><th>Gestión</th></tr>
                         </thead>
                         <tbody>
                             {% for e in especialidades %}
@@ -111,6 +129,26 @@
                                     <td class="id">{{ e.id }}</td>
                                     <td>{{ e.nombre }}</td>
                                     <td class="desc">{{ e.descripcion or "—" }}</td>
+                                    <td><span class="pill">{{ e.medicos|length }}</span></td>
+                                    <td>
+                                        <details class="manage">
+                                            <summary>Gestionar</summary>
+                                            <div class="panel">
+                                                <form class="mini" method="post" action="/especialidades/editar">
+                                                    <input type="hidden" name="especialidad_id" value="{{ e.id }}" />
+                                                    <input name="nombre" value="{{ e.nombre }}" maxlength="100" required />
+                                                    <input name="descripcion" value="{{ e.descripcion }}" maxlength="500" placeholder="Descripción" />
+                                                    <button type="submit">Guardar</button>
+                                                </form>
+                                                <hr />
+                                                <form class="mini danger" method="post" action="/especialidades/eliminar"
+                                                      onsubmit="return confirm('¿Eliminar la especialidad? Sus médicos serán desactivados.')">
+                                                    <input type="hidden" name="especialidad_id" value="{{ e.id }}" />
+                                                    <button type="submit">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </details>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>

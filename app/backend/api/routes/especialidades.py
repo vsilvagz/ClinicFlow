@@ -19,8 +19,11 @@ from app.backend.domain.enums import RolUsuario
 from app.backend.models.usuarios import UsuarioORM
 from app.backend.schemas.especialidades import EspecialidadCrear
 from app.backend.services.especialidades_service import (
+    EspecialidadNoEncontrada,
     EspecialidadYaExiste,
     crear_especialidad,
+    editar_especialidad,
+    eliminar_especialidad,
     listar_especialidades,
 )
 
@@ -38,6 +41,7 @@ def pagina_especialidades(
     db: Session = Depends(get_db),
     usuario: UsuarioORM | None = Depends(usuario_actual),
     creada: str | None = None,
+    ok: str | None = None,
     error: str | None = None,
 ):
     """Renderiza el formulario y la lista de especialidades registradas."""
@@ -50,6 +54,7 @@ def pagina_especialidades(
             "app_name": settings.app_name,
             "especialidades": listar_especialidades(db),
             "creada": creada,
+            "ok": ok,
             "error": error,
         },
     )
@@ -77,3 +82,41 @@ def crear_especialidad_web(
         return RedirectResponse("/especialidades?error=existe", status_code=303)
 
     return RedirectResponse("/especialidades?creada=1", status_code=303)
+
+
+@router.post("/especialidades/editar", include_in_schema=False)
+def editar_especialidad_web(
+    especialidad_id: int = Form(...),
+    nombre: str = Form(...),
+    descripcion: str = Form(default=""),
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM | None = Depends(usuario_actual),
+):
+    """Actualiza una especialidad existente."""
+    if _no_es_admin(usuario):
+        return RedirectResponse("/login", status_code=303)
+    try:
+        editar_especialidad(db, usuario, especialidad_id, nombre=nombre.strip(), descripcion=descripcion.strip())
+    except EspecialidadNoEncontrada:
+        return RedirectResponse("/especialidades?error=no_encontrada", status_code=303)
+    except EspecialidadYaExiste:
+        return RedirectResponse("/especialidades?error=existe", status_code=303)
+    except ValueError:
+        return RedirectResponse("/especialidades?error=invalido", status_code=303)
+    return RedirectResponse("/especialidades?ok=editada", status_code=303)
+
+
+@router.post("/especialidades/eliminar", include_in_schema=False)
+def eliminar_especialidad_web(
+    especialidad_id: int = Form(...),
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM | None = Depends(usuario_actual),
+):
+    """Elimina una especialidad sin médicos asignados."""
+    if _no_es_admin(usuario):
+        return RedirectResponse("/login", status_code=303)
+    try:
+        eliminar_especialidad(db, usuario, especialidad_id)
+    except EspecialidadNoEncontrada:
+        return RedirectResponse("/especialidades?error=no_encontrada", status_code=303)
+    return RedirectResponse("/especialidades?ok=eliminada", status_code=303)
