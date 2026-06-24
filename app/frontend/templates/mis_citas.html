@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mis citas — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;--border:#ECEFF3;--primary:#2563EB;--radius:16px;}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:860px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}.logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+        main{padding:44px 0 64px}
+        h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+        .sub{color:var(--muted);font-size:15px;margin-bottom:28px}
+        .cita-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:14px;display:flex;align-items:center;gap:20px}
+        .cita-fecha{min-width:80px;text-align:center}
+        .cita-fecha .dia{font-size:28px;font-weight:800;line-height:1}
+        .cita-fecha .mes{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+        .cita-hora{font-size:13px;font-weight:700;color:var(--muted);margin-top:2px}
+        .sep{width:1px;height:48px;background:var(--border);flex:none}
+        .cita-info{flex:1}
+        .cita-info h3{font-size:15px;font-weight:700}
+        .cita-info p{font-size:13.5px;color:var(--muted);margin-top:2px}
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:6px}
+        .b-pendiente{background:#FEF3C7;color:#D97706}.b-confirmada{background:#DBEAFE;color:#1D4ED8}
+        .b-cancelada{background:#FEE2E2;color:#DC2626}.b-reagendada{background:#F3F4F6;color:#374151}
+        .b-completada{background:#D1FAE5;color:#065F46}.b-no_asistio{background:#FFEDD5;color:#C2410C}
+        .btn-cancelar{padding:8px 16px;border-radius:10px;border:1px solid #FEE2E2;background:#fff;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s}
+        .btn-cancelar:hover{background:#FEE2E2}
+        .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+        .empty strong{display:block;font-size:18px;color:var(--ink);font-weight:700;margin-bottom:8px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/reservar">Reservar hora</a>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+    <main>
+        <div class="wrap">
+            <h1>Mis citas</h1>
+            <p class="sub">{{ usuario.nombre }}</p>
+
+            {% if citas %}
+                {% for cita in citas %}
+                <div class="cita-card">
+                    <div class="cita-fecha">
+                        <div class="dia">{{ cita.inicio.strftime("%d") }}</div>
+                        <div class="mes">{{ cita.inicio.strftime("%b %Y") }}</div>
+                        <div class="cita-hora">{{ cita.inicio.strftime("%H:%M") }}</div>
+                    </div>
+                    <div class="sep"></div>
+                    <div class="cita-info">
+                        <h3>{{ cita.especialidad }}</h3>
+                        <p>{{ cita.medico.nombre }}{% if cita.motivo %} · {{ cita.motivo }}{% endif %}</p>
+                        {% set estado = cita.estado.value | lower %}
+                        <span class="badge b-{{ estado }}">{{ cita.estado.value | replace("_"," ") | capitalize }}</span>
+                    </div>
+                    {% if cita.estado.value in ['PENDIENTE', 'CONFIRMADA'] %}
+                    <form method="post" action="/mis-citas/{{ cita.id }}/cancelar">
+                        <button class="btn-cancelar" type="submit" onclick="return confirm('¿Cancelar esta cita?')">Cancelar</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty">
+                    <strong>Sin citas registradas</strong>
+                    <a href="/reservar" style="color:var(--primary);font-weight:600">Reserva tu primera hora →</a>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

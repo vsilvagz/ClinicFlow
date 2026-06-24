@@ -28,29 +28,29 @@ router = APIRouter(tags=["auth"])
 # se muestra como "próximamente" porque su página aún no existe.
 def _tarjetas_portal(rol: RolUsuario) -> list[dict]:
     reservar = {"titulo": "Reservar hora", "desc": "Agenda una cita por especialidad y médico.", "href": "/reservar"}
-    mis_citas = {"titulo": "Mis citas", "desc": "Revisa y cancela tus próximas horas.", "href": None}
+    mis_citas_card = {"titulo": "Mis citas", "desc": "Revisa y cancela tus próximas horas.", "href": "/mis-citas"}
     if rol == RolUsuario.ADMINISTRADOR:
         return [
             {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
             {"titulo": "Agenda médica", "desc": "Visualiza la agenda de todos los médicos.", "href": "/agenda"},
             {"titulo": "Especialidades", "desc": "Administra el catálogo de especialidades.", "href": "/especialidades"},
-            {"titulo": "API", "desc": "Documentación interactiva del sistema.", "href": "/docs"},
+            {"titulo": "Lista de espera", "desc": "Supervisa los pacientes en espera.", "href": "/lista-espera"},
         ]
     if rol == RolUsuario.RECEPCIONISTA:
         return [
             {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
             {"titulo": "Agenda médica", "desc": "Visualiza la agenda de todos los médicos.", "href": "/agenda"},
             {"titulo": "Gestión de citas", "desc": "Confirma, cancela y reagenda horas.", "href": "/reservar"},
-            {"titulo": "Lista de espera", "desc": "Inscribe y asigna cupos a pacientes.", "href": None},
+            {"titulo": "Lista de espera", "desc": "Inscribe y asigna cupos a pacientes.", "href": "/lista-espera"},
         ]
     if rol == RolUsuario.MEDICO:
         return [
             {"titulo": "Dashboard", "desc": "Tus citas del día y métricas.", "href": "/dashboard"},
             {"titulo": "Mi agenda", "desc": "Visualiza tus citas del día por fecha.", "href": "/agenda"},
-            {"titulo": "Derivaciones", "desc": "Deriva pacientes a otras especialidades.", "href": None},
+            {"titulo": "Derivaciones", "desc": "Deriva pacientes a otras especialidades.", "href": "/derivaciones"},
         ]
     # Paciente.
-    return [reservar, mis_citas]
+    return [reservar, mis_citas_card]
 
 
 @router.get("/login", include_in_schema=False)

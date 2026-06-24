@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lista de espera — {{ app_name|default("ClinicFlow") }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#F5F6F8;--surface:#FFFFFF;--ink:#10151F;--ink-2:#4B5563;--muted:#7C8696;--border:#ECEFF3;--primary:#2563EB;--radius:16px;}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+        a{text-decoration:none;color:inherit}
+        .wrap{max-width:900px;margin:0 auto;padding:0 28px}
+        header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+        .nav{height:66px;display:flex;align-items:center;gap:18px}
+        .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+        .logo{width:34px;height:34px;border-radius:10px;background:var(--primary);position:relative;flex:none;box-shadow:0 4px 12px rgba(37,99,235,.32)}
+        .logo::before,.logo::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px;transform:translate(-50%,-50%)}
+        .logo::before{width:14px;height:4.5px}.logo::after{width:4.5px;height:14px}
+        .nav .spacer{margin-left:auto}
+        .nav a.link{padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--ink-2)}
+        .nav a.link:hover{background:#F2F4F7;color:var(--ink)}
+        main{padding:44px 0 64px}
+        .page-header{margin-bottom:28px}
+        h1{font-size:clamp(24px,3.5vw,32px);font-weight:800;letter-spacing:-.03em}
+        .sub{color:var(--muted);font-size:15px;margin-top:4px}
+        .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px;overflow:hidden}
+        .section-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)}
+        .section-header h2{font-size:16px;font-weight:700}
+        .esp-tag{font-size:12px;font-weight:600;color:var(--muted);background:#F2F4F7;padding:3px 10px;border-radius:999px}
+        .count-chip{background:#EAF0FF;color:var(--primary);font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+        table{width:100%;border-collapse:collapse}
+        th{text-align:left;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 16px;border-bottom:1px solid var(--border)}
+        td{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#FAFBFC}
+        .pos{font-weight:800;color:var(--primary);width:32px}
+        .nombre{font-weight:600}
+        .badge-prio{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+        .p-urgente{background:#FEE2E2;color:#DC2626}
+        .p-alta{background:#FFEDD5;color:#C2410C}
+        .p-normal{background:#DBEAFE;color:#1D4ED8}
+        .p-baja{background:#F3F4F6;color:#374151}
+        .btn-asignar{padding:7px 14px;border-radius:9px;border:none;background:var(--primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s}
+        .btn-asignar:hover{background:#1D4ED8}
+        .empty{padding:28px;text-align:center;color:var(--muted);font-size:14px}
+        .empty-page{text-align:center;padding:60px 20px;color:var(--muted)}
+        .empty-page strong{display:block;font-size:18px;color:var(--ink);font-weight:700;margin-bottom:8px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="wrap nav">
+            <a class="brand" href="/"><span class="logo"></span>{{ app_name|default("ClinicFlow") }}</a>
+            <span class="spacer"></span>
+            <a class="link" href="/dashboard">Dashboard</a>
+            <a class="link" href="/portal">Portal</a>
+            <a class="link" href="/logout">Cerrar sesión</a>
+        </div>
+    </header>
+    <main>
+        <div class="wrap">
+            <div class="page-header">
+                <h1>Lista de espera</h1>
+                <p class="sub">{{ total_espera }} paciente{{ 's' if total_espera != 1 else '' }} en espera · {{ usuario.nombre }}</p>
+            </div>
+
+            {% if listas %}
+                {% for item in listas %}
+                <div class="section">
+                    <div class="section-header">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <h2>{{ item.lista.especialidad.nombre }}</h2>
+                            <span class="count-chip">{{ item.cola | length }}</span>
+                        </div>
+                        {% if item.cola %}
+                        <form method="post" action="/lista-espera/{{ item.lista.id }}/asignar">
+                            <button class="btn-asignar" type="submit" onclick="return confirm('¿Asignar cupo al próximo paciente?')">
+                                Asignar cupo al siguiente
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    {% if item.cola %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Paciente</th>
+                                <th>Prioridad</th>
+                                <th>En espera desde</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for insc in item.cola %}
+                            <tr>
+                                <td class="pos">{{ loop.index }}</td>
+                                <td class="nombre">{{ insc.paciente.nombre }}</td>
+                                <td>
+                                    {% set p = insc.prioridad.value | lower %}
+                                    <span class="badge-prio p-{{ p }}">{{ insc.prioridad.value | capitalize }}</span>
+                                </td>
+                                <td>{{ insc.fecha_inscripcion.strftime("%d/%m/%Y %H:%M") }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="empty">Sin pacientes en espera para esta especialidad.</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-page">
+                    <strong>Sin listas de espera</strong>
+                    No hay listas de espera creadas en el sistema todavía.
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

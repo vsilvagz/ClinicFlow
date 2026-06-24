@@ -24,7 +24,10 @@ from fastapi.staticfiles import StaticFiles
 # Importar el paquete de modelos REGISTRA todas las tablas en Base.metadata.
 # Sin este import, create_all() no sabría qué tablas crear.
 from app.backend import models  # noqa: F401  (import por efecto secundario)
-from app.backend.api.routes import agenda, auth, citas, dashboard, especialidades, health
+from app.backend.api.routes import (
+    agenda, auth, citas, dashboard, derivaciones,
+    especialidades, health, lista_espera, mis_citas,
+)
 
 # FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
 from app.backend.api.templates import FRONTEND_DIR, templates
@@ -79,6 +82,9 @@ app.include_router(especialidades.router)
 app.include_router(citas.router)
 app.include_router(dashboard.router)
 app.include_router(agenda.router)
+app.include_router(mis_citas.router)
+app.include_router(lista_espera.router)
+app.include_router(derivaciones.router)
 app.include_router(auth.router)
 
 
