@@ -378,8 +378,131 @@ class TestRecepcionista:
 
 
 class TestAdministrador:
+    def _admin(self) -> Administrador:
+        return Administrador(99999999, "Admin", "admin@test.cl", 900000000)
+
     def test_crear_administrador(self):
-        """Enunciado 3.2: El sistema tiene rol Administrador."""
-        admin = Administrador(99999999, "Admin", "admin@test.cl", 900000000)
+        admin = self._admin()
         assert admin.RUN_usuario == 99999999
         assert admin.nombre == "Admin"
+
+    # ── Gestión de usuarios ───────────────────────────────────────────────────
+
+    def test_editar_usuario_actualiza_datos(self):
+        admin = self._admin()
+        p = _paciente()
+        admin.editar_usuario(p, nombre="Otro Nombre", correo="otro@test.cl", telefono=222222222)
+        assert p.nombre == "Otro Nombre"
+        assert p.correo == "otro@test.cl"
+        assert p.telefono == 222222222
+
+    def test_editar_usuario_solo_cambia_lo_entregado(self):
+        admin = self._admin()
+        p = _paciente()
+        original_correo = p.correo
+        admin.editar_usuario(p, nombre="Solo Nombre")
+        assert p.nombre == "Solo Nombre"
+        assert p.correo == original_correo
+
+    def test_editar_usuario_correo_invalido_falla(self):
+        admin = self._admin()
+        p = _paciente()
+        with pytest.raises(ValueError):
+            admin.editar_usuario(p, correo="sin-arroba")
+
+    def test_usuario_nace_activo(self):
+        assert _paciente().activo is True
+
+    def test_desactivar_y_reactivar_usuario(self):
+        admin = self._admin()
+        p = _paciente()
+        admin.desactivar_usuario(p)
+        assert p.activo is False
+        admin.reactivar_usuario(p)
+        assert p.activo is True
+
+    def test_admin_no_puede_desactivarse_a_si_mismo(self):
+        admin = self._admin()
+        with pytest.raises(ValueError):
+            admin.desactivar_usuario(admin)
+
+    # ── Especialidades ────────────────────────────────────────────────────────
+
+    def test_crear_especialidad(self):
+        admin = self._admin()
+        esp = admin.crear_especialidad("Dermatología", "Cuidado de la piel")
+        assert esp.nombre == "Dermatología"
+        assert esp.descripcion == "Cuidado de la piel"
+
+    def test_crear_especialidad_sin_nombre_falla(self):
+        admin = self._admin()
+        with pytest.raises(ValueError):
+            admin.crear_especialidad("   ")
+
+    def test_editar_especialidad(self):
+        admin = self._admin()
+        esp = Especialidad("Cardio")
+        admin.editar_especialidad(esp, nombre="Cardiología", descripcion="Corazón")
+        assert esp.nombre == "Cardiología"
+        assert esp.descripcion == "Corazón"
+
+    # ── Clínicas ──────────────────────────────────────────────────────────────
+
+    def test_crear_clinica(self):
+        admin = self._admin()
+        c = admin.crear_clinica("76123456-7", "Sucursal Centro", "Av. Siempre Viva 1")
+        assert c.RUT_empresa == "76123456-7"
+        assert c.nombre == "Sucursal Centro"
+        assert c.direccion == "Av. Siempre Viva 1"
+
+    def test_crear_clinica_sin_nombre_falla(self):
+        admin = self._admin()
+        with pytest.raises(ValueError):
+            admin.crear_clinica("76123456-7", "")
+
+    def test_editar_clinica(self):
+        admin = self._admin()
+        c = admin.crear_clinica("76123456-7", "Nombre Viejo")
+        admin.editar_clinica(c, nombre="Nombre Nuevo", direccion="Calle 2")
+        assert c.nombre == "Nombre Nuevo"
+        assert c.direccion == "Calle 2"
+
+    # ── Agendas ───────────────────────────────────────────────────────────────
+
+    def test_bloquear_horario_de_medico(self):
+        admin = self._admin()
+        m = _medico()
+        b = admin.bloquear_horario_de(m, MANANA.replace(hour=10), MANANA.replace(hour=11), "Reunión")
+        assert b.motivo == "Reunión"
+
+    def test_suspender_agenda_de_medico_cancela_citas(self):
+        admin = self._admin()
+        m = _medico()
+        cita = _cita(m, MANANA.replace(hour=9))
+        _, canceladas = admin.suspender_agenda_de(
+            m, MANANA.replace(hour=8), MANANA.replace(hour=18), "Mantención"
+        )
+        assert cita in canceladas
+        assert not cita.esta_activa
+
+    # ── Gestión de citas ──────────────────────────────────────────────────────
+
+    def test_confirmar_cita(self):
+        admin = self._admin()
+        cita = _cita(_medico())
+        admin.confirmar_cita(cita)
+        assert cita.estado == EstadoCita.CONFIRMADA
+
+    def test_cancelar_cita(self):
+        admin = self._admin()
+        cita = _cita(_medico())
+        admin.cancelar_cita(cita)
+        assert cita.estado == EstadoCita.CANCELADA
+
+    def test_reagendar_cita(self):
+        admin = self._admin()
+        m = _medico()
+        cita = _cita(m, MANANA.replace(hour=9))
+        nueva = admin.reagendar_cita(cita, m, MANANA.replace(hour=10), ahora=AHORA)
+        assert cita.estado == EstadoCita.REAGENDADA
+        assert nueva.estado == EstadoCita.PENDIENTE

@@ -22,10 +22,16 @@ class Usuario:
         self._nombre = nombre
         self._correo = correo
         self._telefono = telefono
+        self._activo = True
 
     @property
     def RUN_usuario(self) -> int:
         return self.__RUN_usuario
+
+    @property
+    def activo(self) -> bool:
+        """Indica si el usuario está habilitado (puede iniciar sesión y operar)."""
+        return self._activo
 
     @property
     def nombre(self) -> str:
@@ -274,11 +280,131 @@ class Recepcionista(Usuario):
 
 
 class Administrador(Usuario):
-    """
-    Enunciado 3.2 — acceso completo al sistema:
-    usuarios, especialidades, agendas y configuración global.
-    La lógica de administración se implementa en la capa de servicios.
+    """Acceso completo al sistema.
+
+    Administra usuarios, especialidades, clínicas, agendas y citas. Igual que los
+    demás roles, sus métodos operan sobre objetos de dominio recibidos como
+    parámetro; la traducción a/desde la base de datos la hace la capa de servicios.
     """
 
     def __init__(self, RUN_usuario: int, nombre: str, correo: str, telefono: int):
         super().__init__(RUN_usuario, nombre, correo, telefono)
+
+    # ── Gestión de usuarios ───────────────────────────────────────────────────
+
+    def editar_usuario(
+        self,
+        usuario: Usuario,
+        nombre: Optional[str] = None,
+        correo: Optional[str] = None,
+        telefono: Optional[int] = None,
+    ) -> None:
+        """Actualiza los datos de contacto de cualquier usuario.
+
+        Solo toca los campos entregados; el correo se valida en su setter.
+        """
+        if nombre is not None:
+            usuario.nombre = nombre
+        if correo is not None:
+            usuario.correo = correo
+        if telefono is not None:
+            usuario.telefono = telefono
+
+    def desactivar_usuario(self, usuario: Usuario) -> None:
+        """Da de baja a un usuario para que no pueda iniciar sesión ni operar."""
+        if usuario is self:
+            raise ValueError("Un administrador no puede desactivarse a sí mismo.")
+        usuario._activo = False
+
+    def reactivar_usuario(self, usuario: Usuario) -> None:
+        """Vuelve a habilitar a un usuario dado de baja."""
+        usuario._activo = True
+
+    # ── Especialidades ────────────────────────────────────────────────────────
+
+    def crear_especialidad(self, nombre: str, descripcion: str = "") -> Especialidad:
+        """Crea una especialidad nueva del catálogo."""
+        if not nombre or not nombre.strip():
+            raise ValueError("La especialidad debe tener un nombre.")
+        return Especialidad(nombre.strip(), descripcion.strip())
+
+    def editar_especialidad(
+        self,
+        especialidad: Especialidad,
+        nombre: Optional[str] = None,
+        descripcion: Optional[str] = None,
+    ) -> None:
+        """Renombra o cambia la descripción de una especialidad existente."""
+        if nombre is not None:
+            if not nombre.strip():
+                raise ValueError("La especialidad debe tener un nombre.")
+            especialidad.nombre = nombre.strip()
+        if descripcion is not None:
+            especialidad.descripcion = descripcion.strip()
+
+    # ── Clínicas ──────────────────────────────────────────────────────────────
+
+    def crear_clinica(
+        self,
+        RUT_empresa: str,
+        nombre: str,
+        direccion: str = "Dirección no especificada",
+    ) -> "Clinica":
+        """Da de alta una clínica (sucursal)."""
+        # Import diferido: clinica.py importa este módulo, así se evita el ciclo.
+        from app.backend.domain.clinica import Clinica
+
+        if not RUT_empresa or not str(RUT_empresa).strip():
+            raise ValueError("La clínica debe tener un RUT.")
+        if not nombre or not nombre.strip():
+            raise ValueError("La clínica debe tener un nombre.")
+        return Clinica(str(RUT_empresa).strip(), nombre.strip(), direccion.strip())
+
+    def editar_clinica(
+        self,
+        clinica: "Clinica",
+        nombre: Optional[str] = None,
+        direccion: Optional[str] = None,
+    ) -> None:
+        """Actualiza el nombre o la dirección de una clínica."""
+        if nombre is not None:
+            if not nombre.strip():
+                raise ValueError("La clínica debe tener un nombre.")
+            clinica.nombre = nombre.strip()
+        if direccion is not None:
+            clinica.direccion = direccion.strip()
+
+    # ── Agendas (sobre cualquier médico) ──────────────────────────────────────
+
+    def bloquear_horario_de(
+        self, medico: Medico, inicio: datetime, fin: datetime, motivo: str = ""
+    ) -> Bloqueo:
+        """Bloquea un tramo en la agenda de un médico."""
+        return medico.bloquear_horario(inicio, fin, motivo)
+
+    def suspender_agenda_de(
+        self, medico: Medico, inicio: datetime, fin: datetime, motivo: str = ""
+    ) -> tuple[Suspension, list[Cita]]:
+        """Suspende la agenda de un médico en un período; cancela las citas activas."""
+        return medico.suspender_agenda(inicio, fin, motivo)
+
+    # ── Gestión de citas (acceso completo) ────────────────────────────────────
+
+    def confirmar_cita(self, cita: Cita) -> None:
+        cita.confirmar()
+
+    def cancelar_cita(self, cita: Cita) -> None:
+        cita.cancelar()
+
+    def reagendar_cita(
+        self,
+        cita: Cita,
+        medico: Medico,
+        nueva_inicio: datetime,
+        duracion_minutos: int = 30,
+        ahora: Optional[datetime] = None,
+    ) -> Cita:
+        """Mueve una cita a una nueva hora y la registra en la agenda del médico."""
+        nueva = cita.reagendar(nueva_inicio, duracion_minutos, ahora)
+        medico.agenda.agregar_cita(nueva)
+        return nueva
