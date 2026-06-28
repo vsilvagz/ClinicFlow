@@ -1,10 +1,9 @@
 """Tests del despachador: helpers puros y acciones de solo lectura."""
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 import pytest
-
 from app.backend.ai.despachador import (
     despachar,
     emparejar_nombre,
@@ -12,9 +11,14 @@ from app.backend.ai.despachador import (
 )
 from app.backend.ai.intenciones import AccionAsistente, IntencionAsistente
 from app.backend.domain.enums import EstadoCita
+from app.backend.models.agenda import AgendaORM, BloqueHorarioORM
 from app.backend.models.citas import CitaORM
 from app.backend.models.especialidades import EspecialidadORM
+from app.backend.models.lista_espera import ListaEsperaORM
 from app.backend.models.usuarios import MedicoORM, PacienteORM
+from app.backend.repositories.citas import RepositorioCitas
+
+MEDICO_RUN = 222222222
 
 AHORA = datetime(2026, 6, 27, 9, 0)
 PACIENTE_RUN = 111111111
@@ -136,8 +140,164 @@ def test_consultar_disponibilidad_sin_agenda_no_ofrece_horas(db):
     assert "No hay horas de Cardiología" in texto
 
 
-def test_accion_que_muta_responde_no_disponible_todavia(db):
-    intencion = IntencionAsistente(accion=AccionAsistente.AGENDAR, especialidad="x")
+# ---------------------------------------------------------------------------
+# Acciones que modifican datos
+# ---------------------------------------------------------------------------
+
+def _seed_medico_con_agenda(db, especialidad_nombre, dia_semana):
+    esp = EspecialidadORM(nombre=especialidad_nombre)
+    db.add(esp)
+    db.flush()
+    db.add(
+        MedicoORM(
+            run_usuario=MEDICO_RUN,
+            nombre="Dr. Pérez",
+            correo="perez@ejemplo.cl",
+            telefono=56911111111,
+            especialidad_id=esp.id,
+        )
+    )
+    db.flush()
+    agenda = AgendaORM(medico_run=MEDICO_RUN, duracion_slot_minutos=30)
+    db.add(agenda)
+    db.flush()
+    db.add(
+        BloqueHorarioORM(
+            agenda_id=agenda.id,
+            dia_semana=dia_semana,
+            hora_inicio=time(9, 0),
+            hora_fin=time(13, 0),
+        )
+    )
+    db.commit()
+    return esp
+
+
+def test_agendar_crea_la_cita(db, paciente):
+    slot = datetime(2026, 7, 6, 10, 0)  # lunes dentro del horario 09–13
+    _seed_medico_con_agenda(db, "Cardiología", slot.weekday())
+    ahora = slot - timedelta(days=5)
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.AGENDAR, especialidad="cardio", fecha_hora=slot
+    )
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=ahora)
+
+    assert "agendé" in texto.lower()
+    citas = RepositorioCitas(db).listar_de_paciente(PACIENTE_RUN)
+    assert len(citas) == 1
+    assert citas[0].estado is EstadoCita.PENDIENTE
+
+
+def test_agendar_sin_especialidad_pide_dato(db, paciente):
+    intencion = IntencionAsistente(accion=AccionAsistente.AGENDAR)
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "especialidad" in texto.lower()
+
+
+def test_agendar_sin_fecha_pide_dato(db, paciente):
+    intencion = IntencionAsistente(accion=AccionAsistente.AGENDAR, especialidad="cardio")
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "fecha y hora" in texto.lower()
+
+
+def test_agendar_horario_no_disponible_ofrece_alternativas(db, paciente):
+    slot = datetime(2026, 7, 6, 10, 0)  # lunes con agenda
+    _seed_medico_con_agenda(db, "Cardiología", slot.weekday())
+    # Pide un martes (sin bloque horario): no hay ese horario exacto.
+    pedido = datetime(2026, 7, 7, 10, 0)
+    ahora = slot - timedelta(days=5)
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.AGENDAR, especialidad="cardio", fecha_hora=pedido
+    )
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=ahora)
+
+    assert "No hay horas de Cardiología" in texto
+
+
+def test_cancelar_una_cita(db, paciente):
+    futuro = datetime(2026, 7, 6, 10, 0)
+    cita = _crear_cita(PACIENTE_RUN, MEDICO_RUN, "Cardiología", futuro, EstadoCita.CONFIRMADA)
+    db.add(cita)
+    db.commit()
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.CANCELAR, especialidad="cardiología"
+    )
     texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
 
-    assert "todavía no está disponible" in texto
+    assert "Cancelé" in texto
+    db.refresh(cita)
+    assert cita.estado is EstadoCita.CANCELADA
+
+
+def test_cancelar_sin_citas_avisa(db, paciente):
+    intencion = IntencionAsistente(accion=AccionAsistente.CANCELAR)
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "No encontré" in texto
+
+
+def test_cancelar_con_varias_pide_especificar(db, paciente):
+    f1 = datetime(2026, 7, 6, 10, 0)
+    f2 = datetime(2026, 7, 8, 11, 0)
+    db.add(_crear_cita(PACIENTE_RUN, MEDICO_RUN, "Cardiología", f1, EstadoCita.CONFIRMADA))
+    db.add(_crear_cita(PACIENTE_RUN, 333, "Pediatría", f2, EstadoCita.CONFIRMADA))
+    db.commit()
+
+    intencion = IntencionAsistente(accion=AccionAsistente.CANCELAR)  # sin especialidad
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "varias citas" in texto
+
+
+def test_reagendar_mueve_la_cita(db, paciente):
+    original = datetime(2026, 7, 6, 10, 0)
+    nueva = datetime(2026, 7, 8, 11, 0)
+    cita = _crear_cita(PACIENTE_RUN, MEDICO_RUN, "Cardiología", original, EstadoCita.CONFIRMADA)
+    db.add(cita)
+    db.commit()
+    ahora = datetime(2026, 6, 30, 9, 0)
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.REAGENDAR, especialidad="cardio", nueva_fecha_hora=nueva
+    )
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=ahora)
+
+    assert "Reagendé" in texto
+    db.refresh(cita)
+    assert cita.estado is EstadoCita.REAGENDADA
+
+
+def test_reagendar_sin_nueva_hora_pide_dato(db, paciente):
+    intencion = IntencionAsistente(accion=AccionAsistente.REAGENDAR)
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "nueva fecha" in texto.lower()
+
+
+def test_inscribir_en_lista_de_espera(db, paciente):
+    esp = EspecialidadORM(nombre="Cardiología")
+    db.add(esp)
+    db.flush()
+    db.add(ListaEsperaORM(especialidad_id=esp.id, clinica_rut="1-9"))
+    db.commit()
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.INSCRIBIR_ESPERA, especialidad="cardio"
+    )
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "inscribí" in texto.lower()
+
+
+def test_inscribir_dos_veces_avisa(db, paciente):
+    esp = EspecialidadORM(nombre="Cardiología")
+    db.add(esp)
+    db.flush()
+    db.add(ListaEsperaORM(especialidad_id=esp.id, clinica_rut="1-9"))
+    db.commit()
+
+    intencion = IntencionAsistente(
+        accion=AccionAsistente.INSCRIBIR_ESPERA, especialidad="cardio"
+    )
+    despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    texto = despachar(db, PACIENTE_RUN, intencion, ahora=AHORA)
+    assert "Ya estás inscrito" in texto
