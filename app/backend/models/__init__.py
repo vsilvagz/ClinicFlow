@@ -28,6 +28,7 @@ from app.backend.models.agenda import (
     SuspensionORM,
 )
 from app.backend.models.citas import CitaORM
+from app.backend.models.conversacion import ConversacionMensajeORM
 from app.backend.models.derivacion import DerivacionORM
 from app.backend.models.mensajes import MensajeORM
 from app.backend.models.lista_espera import (
@@ -57,6 +58,7 @@ __all__ = [
     "CitaORM",
     "DerivacionORM",
     "MensajeORM",
+    "ConversacionMensajeORM",
     # Lista de espera
     "ListaEsperaORM",
     "InscripcionEsperaORM",
