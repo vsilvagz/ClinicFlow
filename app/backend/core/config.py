@@ -56,8 +56,14 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""  # Token del bot de Telegram (vacío hasta configurarlo).
 
     # ---- Modelo de lenguaje (LLM) ----
-    openai_api_key: str = ""        # Clave de API del proveedor LLM.
-    llm_model: str = "gpt-4o-mini"  # Modelo a usar para el asistente conversacional.
+    # El asistente habla con cualquier servidor compatible con la API de OpenAI.
+    # Cambiando solo estas tres variables se apunta a Groq (gratis, en la nube),
+    # a un llama.cpp local, o a cualquier otro proveedor, sin tocar el código.
+    #   - Groq:        https://api.groq.com/openai/v1   (modelo: llama-3.3-70b-versatile)
+    #   - llama.cpp:   http://llama:8080/v1             (modelo: el que sirvas)
+    llm_base_url: str = "https://api.groq.com/openai/v1"  # URL base del proveedor LLM.
+    llm_api_key: str = ""                                 # Clave de API del proveedor.
+    llm_model: str = "llama-3.3-70b-versatile"            # Modelo del asistente.
 
     @property
     def is_production(self) -> bool:
