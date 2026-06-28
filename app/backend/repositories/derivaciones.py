@@ -22,6 +22,17 @@ class RepositorioDerivaciones(RepositorioBase[DerivacionORM]):
             )
         )
 
+    def listar_pendientes_de_paciente(self, paciente_id: int) -> list[DerivacionORM]:
+        """Derivaciones aún sin concretar de un paciente."""
+        return list(
+            self.db.scalars(
+                select(DerivacionORM).where(
+                    DerivacionORM.paciente_id == paciente_id,
+                    DerivacionORM.estado == EstadoDerivacion.PENDIENTE,
+                )
+            )
+        )
+
     def listar_pendientes_de_medico(self, medico_id: int) -> list[DerivacionORM]:
         """Derivaciones aún sin concretar emitidas por un médico."""
         return list(

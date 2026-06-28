@@ -25,6 +25,7 @@ from app.backend.models.citas import CitaORM
 from app.backend.repositories.citas import RepositorioCitas
 from app.backend.repositories.usuarios import RepositorioUsuarios
 from app.backend.schemas.citas import CitaCrear, CitaReagendar
+from app.backend.services import derivaciones_service
 
 # Días mínimos que deben separar dos citas activas del mismo paciente y
 # especialidad: evita que acumule varias horas de un mismo tipo muy seguidas.
@@ -123,6 +124,14 @@ def crear_cita(db: Session, datos: CitaCrear, ahora: datetime | None = None) -> 
     orm = citas.agregar(_a_orm(cita_dom))
     db.commit()
     db.refresh(orm)
+
+    # Si el paciente reservó en una especialidad a la que estaba derivado, la
+    # derivación pendiente se cierra y queda enlazada a esta cita.
+    if especialidad:
+        derivaciones_service.completar_por_reserva(
+            db, datos.paciente_id, especialidad, orm.id, ahora
+        )
+
     return orm
 
 

@@ -6,6 +6,7 @@ valida la vigencia y la especialidad destino, y las transiciones de estado
 entre ORM y dominio y persiste el resultado.
 """
 
+import unicodedata
 from datetime import datetime
 from uuid import UUID
 
@@ -108,6 +109,41 @@ def completar_derivacion(db: Session, derivacion_id: UUID, cita_id: UUID) -> Der
     db.commit()
     db.refresh(orm)
     return orm
+
+
+def _normalizar_especialidad(nombre: str) -> str:
+    """Nombre de especialidad sin tildes ni mayúsculas, para comparar de forma laxa."""
+    sin_tildes = "".join(
+        c for c in unicodedata.normalize("NFKD", nombre)
+        if not unicodedata.combining(c)
+    )
+    return sin_tildes.strip().casefold()
+
+
+def completar_por_reserva(
+    db: Session,
+    paciente_id: int,
+    especialidad: str,
+    cita_id: UUID,
+    ahora: datetime | None = None,
+) -> DerivacionORM | None:
+    """Cierra la derivación pendiente del paciente para la especialidad reservada.
+
+    Cuando el paciente toma una hora en una especialidad a la que estaba derivado
+    —y la derivación sigue vigente— la marca COMPLETADA y la enlaza a la cita
+    recién creada. Devuelve la derivación cerrada, o None si no había ninguna
+    aplicable. Es idempotente respecto de derivaciones ya cerradas: solo mira las
+    pendientes.
+    """
+    repo = RepositorioDerivaciones(db)
+    objetivo = _normalizar_especialidad(especialidad)
+    for orm in repo.listar_pendientes_de_paciente(paciente_id):
+        if _normalizar_especialidad(orm.especialidad_destino) != objetivo:
+            continue
+        if not _a_dominio(orm).esta_vigente(ahora):
+            continue
+        return completar_derivacion(db, orm.id, cita_id)
+    return None
 
 
 def expirar_vencidas(db: Session, ahora: datetime | None = None) -> int:
