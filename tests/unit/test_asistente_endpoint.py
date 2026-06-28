@@ -122,3 +122,15 @@ def test_el_segundo_mensaje_recibe_el_historial(cliente, db, monkeypatch):
     # En la segunda llamada el historial trae los dos turnos del primer mensaje.
     assert capturado["historial"][0] == (ROL_USUARIO, "primero")
     assert len(capturado["historial"]) == 2
+
+
+def test_recargar_la_pagina_reinicia_la_conversacion(cliente, db):
+    _seed_paciente(db)
+    _autenticar(cliente, PACIENTE_RUN)
+    chat = RepositorioConversacion(db)
+    chat.agregar_turno(PACIENTE_RUN, ROL_USUARIO, "contexto viejo")
+
+    resp = cliente.get("/asistente")
+
+    assert resp.status_code == 200
+    assert chat.ultimos_de_paciente(PACIENTE_RUN) == []

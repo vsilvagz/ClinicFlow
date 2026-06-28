@@ -33,13 +33,21 @@ class MensajeEntrada(BaseModel):
 @router.get("/asistente", include_in_schema=False)
 def pagina_asistente(
     request: Request,
+    db: Session = Depends(get_db),
     usuario: UsuarioORM | None = Depends(usuario_actual),
 ):
-    """Página de chat con el asistente, solo para pacientes autenticados."""
+    """Página de chat con el asistente, solo para pacientes autenticados.
+
+    Al abrir (o recargar) la página se reinicia la conversación: se borran los
+    turnos previos para que el diálogo empiece sin contexto anterior.
+    """
     if usuario is None:
         return RedirectResponse("/login", status_code=303)
     if usuario.rol != RolUsuario.PACIENTE:
         return RedirectResponse("/portal", status_code=303)
+
+    RepositorioConversacion(db).eliminar_de_paciente(usuario.run_usuario)
+
     return templates.TemplateResponse(
         "asistente.html",
         {"request": request, "app_name": settings.app_name, "usuario": usuario},

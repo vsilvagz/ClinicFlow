@@ -39,3 +39,14 @@ def test_turnos_se_separan_por_paciente(db):
 
     assert len(turnos) == 1
     assert turnos[0].contenido == "soy 111"
+
+
+def test_eliminar_de_paciente_borra_solo_sus_turnos(db):
+    repo = RepositorioConversacion(db)
+    repo.agregar_turno(PACIENTE_RUN, ROL_USUARIO, "mío")
+    repo.agregar_turno(222222222, ROL_USUARIO, "ajeno")
+
+    repo.eliminar_de_paciente(PACIENTE_RUN)
+
+    assert repo.ultimos_de_paciente(PACIENTE_RUN) == []
+    assert len(repo.ultimos_de_paciente(222222222)) == 1

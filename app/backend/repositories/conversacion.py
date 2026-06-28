@@ -1,6 +1,6 @@
 """Repositorio de los turnos de conversación con el asistente."""
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.backend.models.conversacion import ConversacionMensajeORM
@@ -22,6 +22,15 @@ class RepositorioConversacion(RepositorioBase[ConversacionMensajeORM]):
         self.db.commit()
         self.db.refresh(turno)
         return turno
+
+    def eliminar_de_paciente(self, paciente_id: int) -> None:
+        """Borra todos los turnos de un paciente (reinicia su conversación)."""
+        self.db.execute(
+            delete(ConversacionMensajeORM).where(
+                ConversacionMensajeORM.paciente_id == paciente_id
+            )
+        )
+        self.db.commit()
 
     def ultimos_de_paciente(
         self, paciente_id: int, limite: int = 10
