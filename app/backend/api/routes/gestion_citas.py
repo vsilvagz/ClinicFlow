@@ -18,6 +18,7 @@ from app.backend.schemas.citas import CitaReagendar
 from app.backend.services.agendas_service import slots_disponibles_de_medico
 from app.backend.services.citas_service import (
     cancelar_cita,
+    completar_cita,
     confirmar_cita,
     marcar_no_asistio,
     reagendar_cita,
@@ -99,6 +100,24 @@ def cancelar(
     except Exception:
         pass
     q = f"?fecha={fecha}&ok=cancelada" if fecha else "?ok=cancelada"
+    return RedirectResponse(f"/gestion-citas{q}", status_code=303)
+
+
+@router.post("/gestion-citas/{cita_id}/completar", include_in_schema=False)
+def completar(
+    cita_id: UUID,
+    fecha: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    usuario: UsuarioORM | None = Depends(usuario_actual),
+):
+    redir = _check(usuario)
+    if redir:
+        return redir
+    try:
+        completar_cita(db, cita_id)
+    except Exception:
+        pass
+    q = f"?fecha={fecha}&ok=completada" if fecha else "?ok=completada"
     return RedirectResponse(f"/gestion-citas{q}", status_code=303)
 
 

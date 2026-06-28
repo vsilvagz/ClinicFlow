@@ -72,6 +72,7 @@
             <div class="alert">
                 {% if ok == 'confirmada' %}Cita confirmada correctamente.
                 {% elif ok == 'cancelada' %}Cita cancelada correctamente.
+                {% elif ok == 'completada' %}Cita marcada como atendida.
                 {% elif ok == 'no_asistio' %}Cita marcada como no asistió.
                 {% elif ok == 'reagendada' %}Cita reagendada correctamente.
                 {% endif %}
@@ -115,22 +116,29 @@
                             </td>
                             <td>
                                 <div class="actions">
-                                    {% if cita.estado.value == 'PENDIENTE' %}
+                                    {% set estado_actual = cita.estado.value | lower %}
+                                    {% if estado_actual == 'pendiente' %}
                                     <form method="post" action="/gestion-citas/{{ cita.id }}/confirmar">
                                         <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
                                         <button class="btn btn-green" type="submit">Confirmar</button>
                                     </form>
                                     {% endif %}
-                                    {% if cita.estado.value in ['PENDIENTE', 'CONFIRMADA'] %}
-                                    <form method="post" action="/gestion-citas/{{ cita.id }}/cancelar">
+                                    {% if estado_actual == 'confirmada' %}
+                                    <form method="post" action="/gestion-citas/{{ cita.id }}/completar">
                                         <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
-                                        <button class="btn btn-red" type="submit" onclick="return confirm('¿Cancelar esta cita?')">Cancelar</button>
+                                        <button class="btn btn-green" type="submit">Atendida</button>
                                     </form>
                                     <form method="post" action="/gestion-citas/{{ cita.id }}/no-asistio">
                                         <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
                                         <button class="btn btn-orange" type="submit">No asistió</button>
                                     </form>
+                                    {% endif %}
+                                    {% if estado_actual in ['pendiente', 'confirmada'] %}
                                     <a class="btn btn-blue" href="/gestion-citas/{{ cita.id }}/reagendar">Reagendar</a>
+                                    <form method="post" action="/gestion-citas/{{ cita.id }}/cancelar">
+                                        <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
+                                        <button class="btn btn-red" type="submit" onclick="return confirm('¿Cancelar esta cita?')">Cancelar</button>
+                                    </form>
                                     {% endif %}
                                 </div>
                             </td>
