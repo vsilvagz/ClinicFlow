@@ -60,6 +60,7 @@ def gestion_citas(
             "usuario": usuario,
             "citas": citas,
             "dia": dia,
+            "ahora": datetime.now(),
             "dia_anterior": (dia - timedelta(days=1)).isoformat(),
             "dia_siguiente": (dia + timedelta(days=1)).isoformat(),
             "ok": ok,

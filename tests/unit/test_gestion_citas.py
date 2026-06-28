@@ -33,8 +33,8 @@ def _seed_personas(db):
     db.commit()
 
 
-def _seed_cita(db, estado, hora=time(10, 0)):
-    inicio = datetime.combine(date.today(), hora)
+def _seed_cita(db, estado, inicio=None):
+    inicio = inicio or datetime.combine(date.today(), time(10, 0))
     cita = CitaORM(
         id=uuid.uuid4(),
         paciente_id=PACIENTE_RUN,
@@ -95,6 +95,35 @@ def test_confirmar_cambia_pendiente_a_confirmada(cliente, db):
     )
 
     assert db.get(CitaORM, cita.id).estado is EstadoCita.CONFIRMADA
+
+
+def test_cita_futura_no_ofrece_asistencia(cliente, db):
+    _seed_personas(db)
+    futura = datetime.now() + timedelta(days=2)
+    cita = _seed_cita(db, EstadoCita.CONFIRMADA, inicio=futura)
+    _login_recepcion(cliente)
+
+    resp = cliente.get(f"/gestion-citas?fecha={futura.date().isoformat()}")
+
+    assert resp.status_code == 200
+    # No se puede marcar asistencia de algo que aún no ocurre…
+    assert f"/gestion-citas/{cita.id}/completar" not in resp.text
+    assert f"/gestion-citas/{cita.id}/no-asistio" not in resp.text
+    # …pero sí reagendar o cancelar.
+    assert f"/gestion-citas/{cita.id}/cancelar" in resp.text
+
+
+def test_cita_pasada_ofrece_asistencia(cliente, db):
+    _seed_personas(db)
+    pasada = datetime.now() - timedelta(days=2)
+    cita = _seed_cita(db, EstadoCita.CONFIRMADA, inicio=pasada)
+    _login_recepcion(cliente)
+
+    resp = cliente.get(f"/gestion-citas?fecha={pasada.date().isoformat()}")
+
+    assert resp.status_code == 200
+    assert f"/gestion-citas/{cita.id}/completar" in resp.text
+    assert f"/gestion-citas/{cita.id}/no-asistio" in resp.text
 
 
 def test_completar_solo_lo_puede_un_rol_autorizado(cliente, db):

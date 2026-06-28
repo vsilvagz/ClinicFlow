@@ -123,7 +123,8 @@
                                         <button class="btn btn-green" type="submit">Confirmar</button>
                                     </form>
                                     {% endif %}
-                                    {% if estado_actual == 'confirmada' %}
+                                    {# Asistencia solo para citas confirmadas que ya ocurrieron. #}
+                                    {% if estado_actual == 'confirmada' and cita.inicio <= ahora %}
                                     <form method="post" action="/gestion-citas/{{ cita.id }}/completar">
                                         <input type="hidden" name="fecha" value="{{ dia.isoformat() }}" />
                                         <button class="btn btn-green" type="submit">Atendida</button>
