@@ -30,6 +30,7 @@ def _tarjetas_portal(rol: RolUsuario) -> list[dict]:
     reservar = {"titulo": "Reservar hora", "desc": "Agenda una cita por especialidad y médico.", "href": "/reservar"}
     mis_citas_card = {"titulo": "Mis citas", "desc": "Revisa, cancela y reagenda tus horas.", "href": "/mis-citas"}
     mis_mensajes_card = {"titulo": "Mis mensajes", "desc": "Notificaciones y derivaciones de tu médico.", "href": "/mis-mensajes"}
+    asistente_card = {"titulo": "Asistente IA", "desc": "Conversa con un agente de IA para agendar, cancelar o consultar tus horas.", "href": "/asistente"}
     if rol == RolUsuario.ADMINISTRADOR:
         return [
             {"titulo": "Dashboard", "desc": "Citas del día, métricas y lista de espera.", "href": "/dashboard"},
@@ -56,7 +57,7 @@ def _tarjetas_portal(rol: RolUsuario) -> list[dict]:
             {"titulo": "Derivaciones", "desc": "Deriva pacientes a otras especialidades.", "href": "/derivaciones"},
         ]
     # Paciente.
-    return [reservar, mis_citas_card, mis_mensajes_card]
+    return [asistente_card, reservar, mis_citas_card, mis_mensajes_card]
 
 
 @router.get("/login", include_in_schema=False)

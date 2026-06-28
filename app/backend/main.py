@@ -25,8 +25,8 @@ from fastapi.staticfiles import StaticFiles
 # Sin este import, create_all() no sabría qué tablas crear.
 from app.backend import models  # noqa: F401  (import por efecto secundario)
 from app.backend.api.routes import (
-    admin_agendas, agenda, auth, citas, clinicas, dashboard, derivaciones,
-    especialidades, gestion_citas, health, lista_espera,
+    admin_agendas, agenda, asistente, auth, citas, clinicas, dashboard,
+    derivaciones, especialidades, gestion_citas, health, lista_espera,
     mi_agenda, mis_citas, mis_mensajes, usuarios,
 )
 
@@ -92,6 +92,7 @@ app.include_router(mi_agenda.router)
 app.include_router(admin_agendas.router)
 app.include_router(clinicas.router)
 app.include_router(usuarios.router)
+app.include_router(asistente.router)
 app.include_router(auth.router)
 
 

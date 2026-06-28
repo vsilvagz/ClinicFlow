@@ -1,0 +1,71 @@
+"""Tests de integración del endpoint web del asistente."""
+
+import pytest
+from app.backend.ai.intenciones import AccionAsistente, IntencionAsistente
+from app.backend.api.deps import COOKIE_SESION
+from app.backend.core.database import get_db
+from app.backend.core.security import crear_token
+from app.backend.main import app
+from app.backend.models.usuarios import MedicoORM, PacienteORM
+from fastapi.testclient import TestClient
+
+PACIENTE_RUN = 111111111
+
+
+@pytest.fixture
+def cliente(db):
+    """TestClient con la sesión de BD de prueba inyectada en lugar de Postgres.
+
+    No se usa como context manager a propósito: así no se ejecuta el `lifespan`
+    de la app (que crearía tablas y sembraría datos contra Postgres real).
+    """
+    app.dependency_overrides[get_db] = lambda: db
+    c = TestClient(app)
+    yield c
+    app.dependency_overrides.clear()
+
+
+def _autenticar(cliente, run):
+    cliente.cookies.set(COOKIE_SESION, crear_token(str(run)))
+
+
+def test_mensaje_sin_sesion_devuelve_401(cliente):
+    resp = cliente.post("/asistente/mensaje", json={"mensaje": "hola"})
+    assert resp.status_code == 401
+
+
+def test_mensaje_de_no_paciente_devuelve_401(cliente, db):
+    db.add(MedicoORM(run_usuario=222, nombre="Dr.", correo="d@e.cl", telefono=56900000000))
+    db.commit()
+    _autenticar(cliente, 222)
+
+    resp = cliente.post("/asistente/mensaje", json={"mensaje": "hola"})
+    assert resp.status_code == 401
+
+
+def test_mensaje_de_paciente_devuelve_respuesta(cliente, db, monkeypatch):
+    db.add(
+        PacienteORM(
+            run_usuario=PACIENTE_RUN,
+            nombre="Ana Soto",
+            correo="ana@ejemplo.cl",
+            telefono=56900000000,
+        )
+    )
+    db.commit()
+    _autenticar(cliente, PACIENTE_RUN)
+
+    # Evitamos la red: forzamos la intención que devolvería el modelo.
+    monkeypatch.setattr(
+        "app.backend.api.routes.asistente.interpretar",
+        lambda mensaje, ahora=None: IntencionAsistente(
+            accion=AccionAsistente.CONSULTAR_MIS_CITAS
+        ),
+    )
+
+    resp = cliente.post("/asistente/mensaje", json={"mensaje": "qué citas tengo"})
+
+    assert resp.status_code == 200
+    datos = resp.json()
+    assert datos["accion"] == "consultar_mis_citas"
+    assert "No tienes citas activas" in datos["respuesta"]
