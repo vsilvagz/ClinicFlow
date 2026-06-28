@@ -2,9 +2,9 @@ import os
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
 from app.backend.ai.cliente import interpretar
 from app.backend.ai.despachador import despachar
-from app.backend.core.database import SessionLocal # Asumiendo que esta es tu fábrica de sesiones
+from app.backend.core.database import SessionLocal 
 
-# Token y un ID de paciente de prueba (para que el bot sepa quién eres)
+# Token y un ID de paciente de prueba (para que el bot sepa quién es)
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "PONER_TOKEN_AQUI")
 PACIENTE_ID_PRUEBA = 1 
 
@@ -14,13 +14,13 @@ async def start(update, context):
 async def echo(update, context):
     mensaje_usuario = update.message.text
     
-    # 1. Creamos la sesión de base de datos
+    # 1. Se crea la sesión de base de datos
     db = SessionLocal()
     try:
-        # 2. Interpretamos el mensaje (lo convertimos en una intención)
+        # 2. Se interpreta el mensaje (se convierte en una intención traducida por la ia)
         intencion = interpretar(mensaje_usuario)
         
-        # 3. Despachamos la acción (ejecutamos contra la BD)
+        # 3. Se despacha la acción (ejecutamos contra la BD)
         respuesta = despachar(db, PACIENTE_ID_PRUEBA, intencion)
         
         # 4. Enviamos la respuesta al paciente
