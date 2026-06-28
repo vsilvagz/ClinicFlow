@@ -16,10 +16,14 @@ from functools import lru_cache
 
 from app.backend.ai.intenciones import AccionAsistente, IntencionAsistente
 from app.backend.core.config import settings
+from app.backend.models.conversacion import ROL_ASISTENTE, ROL_USUARIO
 
 # Días de la semana en español para dar contexto temporal al modelo y que
 # resuelva expresiones relativas ("mañana", "el viernes") a fechas concretas.
 _DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+# Traducción del rol de cada turno guardado al rol que espera la API del modelo.
+_ROL_API = {ROL_USUARIO: "user", ROL_ASISTENTE: "assistant"}
 
 
 def _descripcion_campos() -> str:
@@ -49,17 +53,29 @@ def _instrucciones_sistema() -> str:
     )
 
 
-def construir_mensajes(mensaje: str, ahora: datetime) -> list[dict]:
-    """Arma la lista de mensajes para la API a partir del texto del paciente."""
+def construir_mensajes(
+    mensaje: str,
+    ahora: datetime,
+    historial: list[tuple[str, str]] | None = None,
+) -> list[dict]:
+    """Arma la lista de mensajes para la API a partir del texto del paciente.
+
+    `historial` son turnos previos como pares (rol, contenido) —con el rol en el
+    vocabulario interno («usuario»/«asistente»)— que se insertan antes del
+    mensaje actual para dar contexto a un diálogo de varios turnos.
+    """
     contexto_temporal = (
         f"Fecha y hora actual: {ahora.isoformat(timespec='minutes')} "
         f"({_DIAS[ahora.weekday()]})."
     )
-    return [
+    mensajes = [
         {"role": "system", "content": _instrucciones_sistema()},
         {"role": "system", "content": contexto_temporal},
-        {"role": "user", "content": mensaje},
     ]
+    for rol, contenido in historial or []:
+        mensajes.append({"role": _ROL_API.get(rol, "user"), "content": contenido})
+    mensajes.append({"role": "user", "content": mensaje})
+    return mensajes
 
 
 def parsear_intencion(contenido: str) -> IntencionAsistente:
@@ -90,12 +106,17 @@ def _cliente_openai():
     return OpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
 
 
-def interpretar(mensaje: str, ahora: datetime | None = None) -> IntencionAsistente:
+def interpretar(
+    mensaje: str,
+    ahora: datetime | None = None,
+    historial: list[tuple[str, str]] | None = None,
+) -> IntencionAsistente:
     """Interpreta el mensaje del paciente y devuelve una intención validada.
 
-    Si no hay proveedor configurado o la llamada falla, devuelve una intención
-    DESCONOCIDA con un mensaje claro, de modo que la aplicación nunca se rompa
-    por culpa del modelo.
+    `historial` da contexto de los turnos previos del diálogo. Si no hay
+    proveedor configurado o la llamada falla, devuelve una intención DESCONOCIDA
+    con un mensaje claro, de modo que la aplicación nunca se rompa por culpa del
+    modelo.
     """
     ahora = ahora or datetime.now()
 
@@ -108,7 +129,7 @@ def interpretar(mensaje: str, ahora: datetime | None = None) -> IntencionAsisten
     try:
         respuesta = _cliente_openai().chat.completions.create(
             model=settings.llm_model,
-            messages=construir_mensajes(mensaje, ahora),
+            messages=construir_mensajes(mensaje, ahora, historial),
             response_format={"type": "json_object"},
             temperature=0,
         )

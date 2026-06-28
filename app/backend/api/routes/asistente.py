@@ -17,7 +17,9 @@ from app.backend.api.templates import templates
 from app.backend.core.config import settings
 from app.backend.core.database import get_db
 from app.backend.domain.enums import RolUsuario
+from app.backend.models.conversacion import ROL_ASISTENTE, ROL_USUARIO
 from app.backend.models.usuarios import UsuarioORM
+from app.backend.repositories.conversacion import RepositorioConversacion
 
 router = APIRouter(tags=["asistente"])
 
@@ -54,6 +56,18 @@ def conversar(
     if usuario is None or usuario.rol != RolUsuario.PACIENTE:
         raise HTTPException(status_code=401, detail="Sesión de paciente requerida.")
 
-    intencion = interpretar(entrada.mensaje)
+    chat = RepositorioConversacion(db)
+
+    # El historial previo da contexto al modelo (se carga ANTES de añadir el
+    # mensaje actual, para no duplicarlo).
+    historial = [
+        (t.rol, t.contenido) for t in chat.ultimos_de_paciente(usuario.run_usuario)
+    ]
+    intencion = interpretar(entrada.mensaje, historial=historial)
     respuesta = despachar(db, usuario.run_usuario, intencion)
+
+    # Se deja registro del diálogo para el contexto futuro y el historial.
+    chat.agregar_turno(usuario.run_usuario, ROL_USUARIO, entrada.mensaje)
+    chat.agregar_turno(usuario.run_usuario, ROL_ASISTENTE, respuesta)
+
     return {"respuesta": respuesta, "accion": intencion.accion.value}

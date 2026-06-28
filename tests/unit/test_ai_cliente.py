@@ -24,6 +24,20 @@ def test_construir_mensajes_lista_las_acciones_validas():
         assert accion.value in sistema
 
 
+def test_construir_mensajes_intercala_el_historial():
+    historial = [("usuario", "quiero cardiología"), ("asistente", "¿para qué fecha?")]
+    mensajes = construir_mensajes("el lunes a las 10", AHORA, historial)
+
+    # Tras los dos system van los turnos previos (traducidos a roles de la API)
+    # y, al final, el mensaje actual.
+    assert [m["role"] for m in mensajes] == [
+        "system", "system", "user", "assistant", "user",
+    ]
+    assert mensajes[2]["content"] == "quiero cardiología"
+    assert mensajes[3]["content"] == "¿para qué fecha?"
+    assert mensajes[-1]["content"] == "el lunes a las 10"
+
+
 def test_parsear_intencion_json_valido():
     crudo = '{"accion": "cancelar", "respuesta": "Cancelo tu cita."}'
     intencion = parsear_intencion(crudo)
