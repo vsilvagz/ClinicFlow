@@ -74,7 +74,7 @@
                         {% set estado = cita.estado.value | lower %}
                         <span class="badge b-{{ estado }}">{{ cita.estado.value | replace("_"," ") | capitalize }}</span>
                     </div>
-                    {% if cita.estado.value in ['PENDIENTE', 'CONFIRMADA'] %}
+                    {% if cita.estado.value | lower in ['pendiente', 'confirmada'] %}
                     <div style="display:flex;flex-direction:column;gap:7px">
                         <a href="/mis-citas/{{ cita.id }}/reagendar" style="padding:8px 16px;border-radius:10px;border:1px solid #DBEAFE;background:#fff;color:#1D4ED8;font-size:13px;font-weight:700;text-align:center">Reagendar</a>
                         <form method="post" action="/mis-citas/{{ cita.id }}/cancelar">

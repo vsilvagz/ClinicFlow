@@ -109,7 +109,7 @@
                 </div>
 
                 <!-- Formulario nueva derivación (solo médico) -->
-                {% if usuario.rol.value == 'MEDICO' %}
+                {% if usuario.rol.value | lower == 'medico' %}
                 <div class="form-card">
                     <h2>Nueva derivación</h2>
                     <form method="post" action="/derivaciones/nueva">
