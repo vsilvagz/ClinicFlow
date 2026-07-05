@@ -13,6 +13,10 @@ El módulo separa tres responsabilidades para poder probar la lógica sin red:
 import json
 from datetime import datetime
 from functools import lru_cache
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:
+    from openai.types.chat import ChatCompletionMessageParam
 
 from app.backend.ai.intenciones import AccionAsistente, IntencionAsistente
 from app.backend.core.config import settings
@@ -127,9 +131,15 @@ def interpretar(
         )
 
     try:
+        # `construir_mensajes` es pura y no depende del SDK, por eso devuelve
+        # dicts genéricos; el cast los presenta con el tipo que espera la API.
+        mensajes = cast(
+            "list[ChatCompletionMessageParam]",
+            construir_mensajes(mensaje, ahora, historial),
+        )
         respuesta = _cliente_openai().chat.completions.create(
             model=settings.llm_model,
-            messages=construir_mensajes(mensaje, ahora, historial),
+            messages=mensajes,
             response_format={"type": "json_object"},
             temperature=0,
         )
