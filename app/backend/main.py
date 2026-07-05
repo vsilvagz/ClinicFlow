@@ -32,6 +32,7 @@ from app.backend.api.routes import (
 
 # FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
 from app.backend.api.templates import FRONTEND_DIR, templates
+from app.backend.bot.interactive_telegram import construir_bot
 from app.backend.core.config import settings
 from app.backend.core.database import Base, SessionLocal, engine
 from app.backend.core.seed import sembrar_datos_demo
@@ -41,6 +42,11 @@ from app.backend.core.seed import sembrar_datos_demo
 # Al iniciar creamos las tablas que falten (create_all es idempotente: no toca
 # las que ya existen). Para producción real se usaría Alembic, pero esto deja el
 # sistema ejecutable de inmediato sin pasos manuales.
+#
+# Además arrancamos el bot de Telegram en segundo plano dentro de este mismo
+# proceso: así un solo `uvicorn` (o `docker compose up`) levanta la web y el bot
+# juntos. Si no hay TELEGRAM_BOT_TOKEN configurado, construir_bot() devuelve None
+# y simplemente no se arranca ningún bot (la web funciona igual).
 # ──────────────────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -53,8 +59,22 @@ async def lifespan(app: FastAPI):
             sembrar_datos_demo(db)
         finally:
             db.close()
+
+    # Bot de Telegram como tarea de fondo (polling). Comparte el bucle de eventos
+    # con Uvicorn; por eso los handlers delegan el trabajo pesado a hilos.
+    bot = construir_bot()
+    if bot is not None:
+        await bot.initialize()
+        await bot.start()
+        await bot.updater.start_polling()
+
     yield
-    # (Al apagar no hay recursos extra que liberar por ahora.)
+
+    # Al apagar, detenemos el bot ordenadamente si estaba corriendo.
+    if bot is not None:
+        await bot.updater.stop()
+        await bot.stop()
+        await bot.shutdown()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

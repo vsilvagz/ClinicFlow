@@ -45,6 +45,14 @@ class EspecialidadNoEncontrada(Exception):
     """La especialidad indicada para el médico no existe."""
 
 
+class CredencialesInvalidas(Exception):
+    """El RUN o la contraseña no son correctos al vincular Telegram."""
+
+
+class SoloPacientesEnTelegram(Exception):
+    """Solo las cuentas de paciente pueden vincularse al bot de Telegram."""
+
+
 def _verificar_run_libre(db: Session, run: int) -> None:
     if db.get(UsuarioORM, run) is not None:
         raise UsuarioYaExiste(f"Ya existe un usuario con RUN {run}.")
@@ -155,6 +163,54 @@ def autenticar(db: Session, run: int, password: str) -> UsuarioORM | None:
     if not verificar_password(password, usuario.password_hash):
         return None
     return usuario
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Vinculación de cuentas con el bot de Telegram.
+# El bot identifica a cada persona por su `chat_id`. Aquí se asocia ese chat a la
+# cuenta del paciente tras verificar sus credenciales, de modo que el bot opere
+# siempre sobre la cuenta correcta (no sobre un paciente fijo). Las reglas de
+# negocio del asistente siguen viviendo en los servicios de citas/espera; esto
+# solo resuelve "qué paciente es este chat".
+# ──────────────────────────────────────────────────────────────────────────────
+
+def vincular_telegram(db: Session, run: int, password: str, chat_id: int) -> PacienteORM:
+    """Vincula un chat de Telegram a la cuenta de un paciente.
+
+    Verifica las credenciales con el mismo mecanismo que el login web y exige que
+    la cuenta sea de paciente. Un chat solo puede quedar vinculado a una cuenta:
+    si el chat ya estaba asociado a otra (o esta cuenta tenía otro chat), se
+    libera el vínculo previo antes de crear el nuevo.
+    """
+    usuario = autenticar(db, run, password)
+    if usuario is None:
+        raise CredencialesInvalidas("RUN o contraseña incorrectos.")
+    if usuario.rol != RolUsuario.PACIENTE:
+        raise SoloPacientesEnTelegram("Solo los pacientes pueden usar el bot.")
+
+    # Liberar el chat de cualquier cuenta que lo tuviera (respeta la unicidad
+    # chat↔cuenta y permite revincular el chat a otro paciente).
+    previos = db.scalars(
+        select(UsuarioORM).where(UsuarioORM.telegram_chat_id == chat_id)
+    ).all()
+    for previo in previos:
+        previo.telegram_chat_id = None
+    db.flush()
+
+    usuario.telegram_chat_id = chat_id
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+def desvincular_telegram(db: Session, chat_id: int) -> bool:
+    """Quita el vínculo de un chat de Telegram. Devuelve True si había vínculo."""
+    paciente = RepositorioUsuarios(db).obtener_paciente_por_chat(chat_id)
+    if paciente is None:
+        return False
+    paciente.telegram_chat_id = None
+    db.commit()
+    return True
 
 
 def obtener_medico(db: Session, run: int) -> MedicoORM:

@@ -66,6 +66,15 @@ class UsuarioORM(Base):
         Boolean, nullable=False, default=True, server_default=text("true")
     )
 
+    # telegram_chat_id: id del chat de Telegram vinculado a esta cuenta. Permite
+    # que el bot sepa qué paciente está escribiendo (mapea chat → cuenta real, en
+    # vez de asumir un paciente fijo). Es NULO hasta que el paciente vincula su
+    # cuenta con /vincular. BigInteger porque los ids de Telegram no caben siempre
+    # en 32 bits; único porque un chat solo puede pertenecer a una cuenta.
+    telegram_chat_id: Mapped[int | None] = mapped_column(
+        BigInteger, unique=True, nullable=True
+    )
+
     # __mapper_args__ configura la herencia:
     #   polymorphic_on=rol         → columna que distingue los tipos.
     #   polymorphic_identity="usuario" → identidad de esta clase base.

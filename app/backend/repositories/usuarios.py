@@ -27,6 +27,12 @@ class RepositorioUsuarios(RepositorioBase[UsuarioORM]):
         """Devuelve el usuario solo si existe y es un médico."""
         return self.db.get(MedicoORM, run)
 
+    def obtener_paciente_por_chat(self, chat_id: int) -> PacienteORM | None:
+        """Devuelve el paciente vinculado a un chat de Telegram, o None."""
+        return self.db.scalar(
+            select(PacienteORM).where(PacienteORM.telegram_chat_id == chat_id)
+        )
+
     def listar_medicos(self) -> list[MedicoORM]:
         """Lista todos los médicos registrados."""
         return list(self.db.scalars(select(MedicoORM)))
