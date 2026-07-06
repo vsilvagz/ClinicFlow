@@ -281,7 +281,13 @@ def sembrar_datos_demo(db: Session) -> bool:
         SuspensionCrear(inicio=_dt(d4, 8), fin=_dt(d4, 20), motivo="Capacitación"),
     )
 
-    # 8) Lista de espera de Cardiología con pacientes priorizados.
+    # 8) Una lista de espera por cada especialidad de la clínica, para que todas
+    #    estén disponibles desde el inicio (web y asistente). Cardiología parte con
+    #    pacientes de ejemplo priorizados.
+    for esp_id in id_por_especialidad.values():
+        obtener_o_crear_lista(
+            db, ListaEsperaCrear(especialidad_id=esp_id, clinica_rut=rut_clinica)
+        )
     lista = obtener_o_crear_lista(
         db, ListaEsperaCrear(especialidad_id=id_por_especialidad["Cardiología"], clinica_rut=rut_clinica)
     )
