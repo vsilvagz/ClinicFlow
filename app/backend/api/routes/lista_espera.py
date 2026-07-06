@@ -12,15 +12,18 @@ from app.backend.core.database import get_db
 from app.backend.domain.enums import PrioridadEspera, RolUsuario
 from app.backend.domain.errores import PacienteNoEncontrado, PacienteYaEnEspera
 from app.backend.domain.lista_espera import _PESO_PRIORIDAD
+from app.backend.models.clinica import ClinicaORM
 from app.backend.models.lista_espera import ListaEsperaORM
-from app.backend.models.usuarios import UsuarioORM
+from app.backend.models.usuarios import RecepcionistaORM, UsuarioORM
+from app.backend.repositories.clinica import RepositorioClinicas
 from app.backend.repositories.usuarios import RepositorioUsuarios
-from app.backend.schemas.lista_espera import InscripcionCrear
+from app.backend.schemas.lista_espera import InscripcionCrear, ListaEsperaCrear
 from app.backend.services.lista_espera_service import (
     ColaVacia,
     SinCupoDisponible,
     asignar_siguiente_cupo,
     inscribir_paciente,
+    obtener_o_crear_lista,
 )
 
 router = APIRouter(tags=["lista-espera"])
@@ -34,6 +37,14 @@ def _check(usuario: UsuarioORM | None):
     if usuario.rol not in _ROLES_PERMITIDOS:
         return RedirectResponse("/portal", status_code=303)
     return None
+
+
+def _clinica_del_usuario(db: Session, usuario: UsuarioORM) -> ClinicaORM | None:
+    """Clínica de contexto: la de la recepcionista, o la primera para el admin."""
+    if isinstance(usuario, RecepcionistaORM) and usuario.clinica_rut:
+        return db.get(ClinicaORM, usuario.clinica_rut)
+    clinicas = RepositorioClinicas(db).listar()
+    return clinicas[0] if clinicas else None
 
 
 @router.get("/lista-espera", include_in_schema=False)
@@ -62,6 +73,12 @@ def lista_espera(
     total_espera = sum(len(lc["cola"]) for lc in listas_con_cola)
     pacientes = RepositorioUsuarios(db).listar_pacientes()
 
+    # Especialidades ofrecidas por la clínica de contexto (para elegir al inscribir).
+    clinica = _clinica_del_usuario(db, usuario)
+    especialidades = sorted(
+        clinica.especialidades if clinica else [], key=lambda e: e.nombre
+    )
+
     return templates.TemplateResponse(
         "lista_espera.html",
         {
@@ -71,6 +88,7 @@ def lista_espera(
             "listas": listas_con_cola,
             "total_espera": total_espera,
             "pacientes": pacientes,
+            "especialidades": especialidades,
             "prioridades": list(PrioridadEspera),
             "ok": ok,
             "error": error,
@@ -78,10 +96,10 @@ def lista_espera(
     )
 
 
-@router.post("/lista-espera/{lista_id}/inscribir", include_in_schema=False)
+@router.post("/lista-espera/inscribir", include_in_schema=False)
 def inscribir(
-    lista_id: int,
     paciente_id: int = Form(...),
+    especialidad_id: int = Form(...),
     prioridad: PrioridadEspera = Form(PrioridadEspera.NORMAL),
     db: Session = Depends(get_db),
     usuario: UsuarioORM | None = Depends(usuario_actual),
@@ -90,10 +108,21 @@ def inscribir(
     if redir:
         return redir
 
+    clinica = _clinica_del_usuario(db, usuario)
+    if clinica is None:
+        return RedirectResponse("/lista-espera?error=sin_clinica", status_code=303)
+
     try:
+        # Ubica (o crea) la lista de esa especialidad en la clínica y luego inscribe.
+        lista = obtener_o_crear_lista(
+            db,
+            ListaEsperaCrear(
+                especialidad_id=especialidad_id, clinica_rut=clinica.rut_empresa
+            ),
+        )
         inscribir_paciente(
             db,
-            lista_id,
+            lista.id,
             InscripcionCrear(paciente_id=paciente_id, prioridad=prioridad),
         )
     except PacienteYaEnEspera:

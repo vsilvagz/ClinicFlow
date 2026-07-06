@@ -52,12 +52,13 @@
         .banner{padding:12px 18px;border-radius:11px;font-size:14px;font-weight:600;margin-bottom:20px}
         .banner.ok{background:#DCFCE7;color:#15803D}
         .banner.err{background:#FEE2E2;color:#DC2626}
-        .inscribir{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 24px;background:#FAFBFC;border-bottom:1px solid var(--border)}
+        .inscribir{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;padding:18px 24px}
+        .inscribir .field{display:flex;flex-direction:column;gap:6px}
+        .inscribir .field.grow{flex:1;min-width:180px}
         .inscribir label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-        .inscribir select{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font:inherit;font-size:14px;background:#fff;color:var(--ink);cursor:pointer}
+        .inscribir select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font:inherit;font-size:14px;background:#fff;color:var(--ink);cursor:pointer}
         .inscribir select:focus{outline:none;border-color:var(--primary)}
-        .inscribir .grow{flex:1;min-width:160px}
-        .btn-inscribir{padding:8px 15px;border-radius:9px;border:none;background:var(--ink);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s}
+        .btn-inscribir{padding:10px 16px;border-radius:9px;border:none;background:var(--ink);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s}
         .btn-inscribir:hover{background:#000}
     </style>
 </head>
@@ -84,7 +85,43 @@
             {% if error == 'paciente' %}<div class="banner err">El paciente seleccionado no existe.</div>{% endif %}
             {% if error == 'cola_vacia' %}<div class="banner err">No hay pacientes en espera para asignar un cupo.</div>{% endif %}
             {% if error == 'sin_cupo' %}<div class="banner err">No hay horas libres en la especialidad para asignar un cupo.</div>{% endif %}
+            {% if error == 'sin_clinica' %}<div class="banner err">No hay una clínica asociada para registrar la inscripción.</div>{% endif %}
             {% if error == 'general' %}<div class="banner err">No se pudo completar la operación. Inténtalo de nuevo.</div>{% endif %}
+
+            {% if pacientes and especialidades %}
+            <div class="section">
+                <div class="section-header"><h2>Inscribir paciente en lista de espera</h2></div>
+                <form class="inscribir" method="post" action="/lista-espera/inscribir">
+                    <div class="field grow">
+                        <label for="pac">Paciente</label>
+                        <select id="pac" name="paciente_id" required>
+                            <option value="" disabled selected>Seleccionar paciente…</option>
+                            {% for pac in pacientes %}
+                            <option value="{{ pac.run_usuario }}">{{ pac.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field grow">
+                        <label for="esp">Especialidad</label>
+                        <select id="esp" name="especialidad_id" required>
+                            <option value="" disabled selected>Seleccionar especialidad…</option>
+                            {% for esp in especialidades %}
+                            <option value="{{ esp.id }}">{{ esp.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="prio">Prioridad</label>
+                        <select id="prio" name="prioridad">
+                            {% for prio in prioridades %}
+                            <option value="{{ prio.value }}"{{ ' selected' if prio.value == 'normal' else '' }}>{{ prio.value | capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button class="btn-inscribir" type="submit">Inscribir en espera</button>
+                </form>
+            </div>
+            {% endif %}
 
             {% if listas %}
                 {% for item in listas %}
@@ -102,24 +139,6 @@
                         </form>
                         {% endif %}
                     </div>
-
-                    {% if pacientes %}
-                    <form class="inscribir" method="post" action="/lista-espera/{{ item.lista.id }}/inscribir">
-                        <label for="pac-{{ item.lista.id }}">Inscribir</label>
-                        <select class="grow" id="pac-{{ item.lista.id }}" name="paciente_id" required>
-                            <option value="" disabled selected>Seleccionar paciente…</option>
-                            {% for pac in pacientes %}
-                            <option value="{{ pac.run_usuario }}">{{ pac.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                        <select name="prioridad">
-                            {% for prio in prioridades %}
-                            <option value="{{ prio.value }}"{{ ' selected' if prio.value == 'normal' else '' }}>{{ prio.value | capitalize }}</option>
-                            {% endfor %}
-                        </select>
-                        <button class="btn-inscribir" type="submit">Inscribir en espera</button>
-                    </form>
-                    {% endif %}
 
                     {% if item.cola %}
                     <table>
