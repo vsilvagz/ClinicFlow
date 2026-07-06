@@ -49,6 +49,16 @@
         .empty{padding:28px;text-align:center;color:var(--muted);font-size:14px}
         .empty-page{text-align:center;padding:60px 20px;color:var(--muted)}
         .empty-page strong{display:block;font-size:18px;color:var(--ink);font-weight:700;margin-bottom:8px}
+        .banner{padding:12px 18px;border-radius:11px;font-size:14px;font-weight:600;margin-bottom:20px}
+        .banner.ok{background:#DCFCE7;color:#15803D}
+        .banner.err{background:#FEE2E2;color:#DC2626}
+        .inscribir{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 24px;background:#FAFBFC;border-bottom:1px solid var(--border)}
+        .inscribir label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+        .inscribir select{padding:8px 11px;border:1px solid var(--border);border-radius:9px;font:inherit;font-size:14px;background:#fff;color:var(--ink);cursor:pointer}
+        .inscribir select:focus{outline:none;border-color:var(--primary)}
+        .inscribir .grow{flex:1;min-width:160px}
+        .btn-inscribir{padding:8px 15px;border-radius:9px;border:none;background:var(--ink);color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .14s}
+        .btn-inscribir:hover{background:#000}
     </style>
 </head>
 <body>
@@ -68,6 +78,14 @@
                 <p class="sub">{{ total_espera }} paciente{{ 's' if total_espera != 1 else '' }} en espera · {{ usuario.nombre }}</p>
             </div>
 
+            {% if ok == 'inscrito' %}<div class="banner ok">Paciente inscrito en la lista de espera.</div>{% endif %}
+            {% if ok == 'asignado' %}<div class="banner ok">Cupo asignado: se agendó la hora más próxima al siguiente paciente y quedó registrada en la agenda del médico.</div>{% endif %}
+            {% if error == 'duplicado' %}<div class="banner err">El paciente ya está inscrito en esa lista de espera.</div>{% endif %}
+            {% if error == 'paciente' %}<div class="banner err">El paciente seleccionado no existe.</div>{% endif %}
+            {% if error == 'cola_vacia' %}<div class="banner err">No hay pacientes en espera para asignar un cupo.</div>{% endif %}
+            {% if error == 'sin_cupo' %}<div class="banner err">No hay horas libres en la especialidad para asignar un cupo.</div>{% endif %}
+            {% if error == 'general' %}<div class="banner err">No se pudo completar la operación. Inténtalo de nuevo.</div>{% endif %}
+
             {% if listas %}
                 {% for item in listas %}
                 <div class="section">
@@ -84,6 +102,24 @@
                         </form>
                         {% endif %}
                     </div>
+
+                    {% if pacientes %}
+                    <form class="inscribir" method="post" action="/lista-espera/{{ item.lista.id }}/inscribir">
+                        <label for="pac-{{ item.lista.id }}">Inscribir</label>
+                        <select class="grow" id="pac-{{ item.lista.id }}" name="paciente_id" required>
+                            <option value="" disabled selected>Seleccionar paciente…</option>
+                            {% for pac in pacientes %}
+                            <option value="{{ pac.run_usuario }}">{{ pac.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="prioridad">
+                            {% for prio in prioridades %}
+                            <option value="{{ prio.value }}"{{ ' selected' if prio.value == 'normal' else '' }}>{{ prio.value | capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn-inscribir" type="submit">Inscribir en espera</button>
+                    </form>
+                    {% endif %}
 
                     {% if item.cola %}
                     <table>
