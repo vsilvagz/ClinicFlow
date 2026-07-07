@@ -8,6 +8,7 @@ iniciada.
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.backend.api.deps import COOKIE_SESION, usuario_actual
@@ -18,9 +19,33 @@ from app.backend.core.rut import parsear_run
 from app.backend.core.security import crear_token
 from app.backend.domain.enums import RolUsuario
 from app.backend.models.usuarios import UsuarioORM
-from app.backend.services.usuarios_service import autenticar
+from app.backend.schemas.usuarios import PacienteCrear
+from app.backend.services.usuarios_service import (
+    UsuarioYaExiste,
+    autenticar,
+    crear_paciente,
+)
 
 router = APIRouter(tags=["auth"])
+
+
+def _abrir_sesion(destino: str, run: int) -> RedirectResponse:
+    """Redirige a `destino` dejando la cookie de sesión del usuario `run`."""
+    respuesta = RedirectResponse(destino, status_code=303)
+    respuesta.set_cookie(
+        key=COOKIE_SESION,
+        value=crear_token(str(run)),
+        httponly=True,
+        samesite="lax",
+        max_age=settings.access_token_expire_minutes * 60,
+    )
+    return respuesta
+
+
+def _solo_digitos(valor: str) -> int | None:
+    """Extrae los dígitos de un texto (p. ej. un teléfono) como entero, o None."""
+    digitos = "".join(c for c in valor if c.isdigit())
+    return int(digitos) if digitos else None
 
 
 # Tarjetas del portal por rol. Cada rol ve solo las herramientas que le competen
@@ -81,15 +106,60 @@ def iniciar_sesion(
     if usuario is None:
         return RedirectResponse("/login?error=credenciales", status_code=303)
 
-    respuesta = RedirectResponse("/portal", status_code=303)
-    respuesta.set_cookie(
-        key=COOKIE_SESION,
-        value=crear_token(str(usuario.run_usuario)),
-        httponly=True,
-        samesite="lax",
-        max_age=settings.access_token_expire_minutes * 60,
+    return _abrir_sesion("/portal", usuario.run_usuario)
+
+
+@router.get("/registro", include_in_schema=False)
+def pagina_registro(request: Request, error: str | None = None):
+    """Formulario público de auto-registro de pacientes."""
+    return templates.TemplateResponse(
+        "registro.html",
+        {"request": request, "app_name": settings.app_name, "error": error},
     )
-    return respuesta
+
+
+@router.post("/registro", include_in_schema=False)
+def registrar_paciente(
+    run: str = Form(...),
+    nombre: str = Form(...),
+    correo: str = Form(...),
+    telefono: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Crea la cuenta de un paciente y le abre la sesión automáticamente.
+
+    Es la vía de auto-registro: cualquier persona puede darse de alta como
+    paciente sin intervención del administrador. Las validaciones de formato
+    (RUN, correo, largo de la contraseña) las hace el schema `PacienteCrear`; la
+    unicidad del RUN la comprueba el servicio.
+    """
+    run_num = parsear_run(run)
+    if run_num is None:
+        return RedirectResponse("/registro?error=rut", status_code=303)
+
+    telefono_num = _solo_digitos(telefono)
+    if telefono_num is None:
+        return RedirectResponse("/registro?error=telefono", status_code=303)
+
+    try:
+        datos = PacienteCrear(
+            run_usuario=run_num,
+            nombre=nombre.strip(),
+            correo=correo.strip(),
+            telefono=telefono_num,
+            password=password,
+        )
+    except ValidationError:
+        # Correo mal formado o contraseña demasiado corta (mín. 4 caracteres).
+        return RedirectResponse("/registro?error=datos", status_code=303)
+
+    try:
+        paciente = crear_paciente(db, datos)
+    except UsuarioYaExiste:
+        return RedirectResponse("/registro?error=rut_ocupado", status_code=303)
+
+    return _abrir_sesion("/portal", paciente.run_usuario)
 
 
 @router.get("/logout", include_in_schema=False)
