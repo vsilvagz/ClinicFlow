@@ -80,11 +80,12 @@
             </div>
 
             {% if ok == 'inscrito' %}<div class="banner ok">Paciente inscrito en la lista de espera.</div>{% endif %}
-            {% if ok == 'asignado' %}<div class="banner ok">Cupo asignado: se agendó la hora más próxima al siguiente paciente y quedó registrada en la agenda del médico.</div>{% endif %}
+            {% if ok == 'ofrecido' %}<div class="banner ok">Se ofreció la hora más próxima al siguiente paciente. Le llegó a «Mis mensajes» para que la confirme, siga esperando o salga de la lista.</div>{% endif %}
             {% if error == 'duplicado' %}<div class="banner err">El paciente ya está inscrito en esa lista de espera.</div>{% endif %}
             {% if error == 'paciente' %}<div class="banner err">El paciente seleccionado no existe.</div>{% endif %}
-            {% if error == 'cola_vacia' %}<div class="banner err">No hay pacientes en espera para asignar un cupo.</div>{% endif %}
-            {% if error == 'sin_cupo' %}<div class="banner err">No hay horas libres en la especialidad para asignar un cupo.</div>{% endif %}
+            {% if error == 'cola_vacia' %}<div class="banner err">No hay pacientes en espera para ofrecer un cupo.</div>{% endif %}
+            {% if error == 'ya_ofrecido' %}<div class="banner err">Ya hay una oferta pendiente en esta lista, esperando la respuesta del paciente.</div>{% endif %}
+            {% if error == 'sin_cupo' %}<div class="banner err">No hay horas libres en la especialidad para ofrecer un cupo.</div>{% endif %}
             {% if error == 'sin_clinica' %}<div class="banner err">No hay una clínica asociada para registrar la inscripción.</div>{% endif %}
             {% if error == 'general' %}<div class="banner err">No se pudo completar la operación. Inténtalo de nuevo.</div>{% endif %}
 
@@ -132,9 +133,9 @@
                             <span class="count-chip">{{ item.cola | length }}</span>
                         </div>
                         {% if item.cola %}
-                        <form method="post" action="/lista-espera/{{ item.lista.id }}/asignar">
-                            <button class="btn-asignar" type="submit" onclick="return confirm('¿Asignar cupo al próximo paciente?')">
-                                Asignar cupo al siguiente
+                        <form method="post" action="/lista-espera/{{ item.lista.id }}/ofrecer">
+                            <button class="btn-asignar" type="submit" onclick="return confirm('¿Ofrecer la hora más próxima al siguiente paciente? Deberá confirmarla desde Mis mensajes.')">
+                                Ofrecer hora al siguiente
                             </button>
                         </form>
                         {% endif %}

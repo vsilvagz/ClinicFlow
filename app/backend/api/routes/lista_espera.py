@@ -20,10 +20,11 @@ from app.backend.repositories.usuarios import RepositorioUsuarios
 from app.backend.schemas.lista_espera import InscripcionCrear, ListaEsperaCrear
 from app.backend.services.lista_espera_service import (
     ColaVacia,
+    OfertaYaPendiente,
     SinCupoDisponible,
-    asignar_siguiente_cupo,
     inscribir_paciente,
     obtener_o_crear_lista,
+    ofrecer_siguiente_cupo,
 )
 
 router = APIRouter(tags=["lista-espera"])
@@ -135,23 +136,30 @@ def inscribir(
     return RedirectResponse("/lista-espera?ok=inscrito", status_code=303)
 
 
-@router.post("/lista-espera/{lista_id}/asignar", include_in_schema=False)
-def asignar_cupo(
+@router.post("/lista-espera/{lista_id}/ofrecer", include_in_schema=False)
+def ofrecer_cupo(
     lista_id: int,
     db: Session = Depends(get_db),
     usuario: UsuarioORM | None = Depends(usuario_actual),
 ):
+    """Ofrece la hora más próxima al siguiente en espera (no la asigna directo).
+
+    El paciente recibe la oferta en «Mis mensajes» y decide si la confirma, sigue
+    esperando o sale de la lista; la cita solo se crea si él la acepta.
+    """
     redir = _check(usuario)
     if redir:
         return redir
 
     try:
-        asignar_siguiente_cupo(db, lista_id)
+        ofrecer_siguiente_cupo(db, lista_id)
     except ColaVacia:
         return RedirectResponse("/lista-espera?error=cola_vacia", status_code=303)
+    except OfertaYaPendiente:
+        return RedirectResponse("/lista-espera?error=ya_ofrecido", status_code=303)
     except SinCupoDisponible:
         return RedirectResponse("/lista-espera?error=sin_cupo", status_code=303)
     except Exception:
         return RedirectResponse("/lista-espera?error=general", status_code=303)
 
-    return RedirectResponse("/lista-espera?ok=asignado", status_code=303)
+    return RedirectResponse("/lista-espera?ok=ofrecido", status_code=303)

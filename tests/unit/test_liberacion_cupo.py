@@ -8,6 +8,7 @@ siguiente) o salir de la lista.
 
 from datetime import datetime, time, timedelta
 
+import pytest
 from sqlalchemy import select
 
 from app.backend.domain.enums import EstadoCita, EstadoOferta, PrioridadEspera
@@ -158,3 +159,36 @@ def test_salir_saca_de_la_lista_y_ofrece_al_siguiente(db):
     pendientes = _pendientes(db)
     assert len(pendientes) == 1
     assert pendientes[0].paciente_id == PAC_ALTA
+
+
+# ── Acción manual de la recepcionista: ofrecer (no asignar) el cupo ────────────
+
+def test_ofrecer_siguiente_cupo_crea_oferta_para_el_top(db):
+    _esp, lista = _armar(db)
+
+    oferta = les.ofrecer_siguiente_cupo(db, lista.id)
+
+    assert oferta.paciente_id == PAC_URGENTE
+    assert oferta.estado == EstadoOferta.PENDIENTE
+    # No se creó ninguna cita: la hora queda pendiente de que el paciente la acepte.
+    from app.backend.models.citas import CitaORM
+    assert list(db.scalars(select(CitaORM))) == []
+
+
+def test_ofrecer_siguiente_cupo_falla_si_ya_hay_una_oferta_pendiente(db):
+    _esp, lista = _armar(db)
+    les.ofrecer_siguiente_cupo(db, lista.id)
+
+    with pytest.raises(les.OfertaYaPendiente):
+        les.ofrecer_siguiente_cupo(db, lista.id)
+
+
+def test_ofrecer_siguiente_cupo_falla_si_la_cola_esta_vacia(db):
+    _esp, _lista = _armar(db)
+    otra = crear_especialidad(db, EspecialidadCrear(nombre="Pediatría", descripcion=""))
+    vacia = les.obtener_o_crear_lista(
+        db, ListaEsperaCrear(especialidad_id=otra.id, clinica_rut=CLINICA_RUT)
+    )
+
+    with pytest.raises(les.ColaVacia):
+        les.ofrecer_siguiente_cupo(db, vacia.id)

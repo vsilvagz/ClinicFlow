@@ -251,6 +251,10 @@ class OfertaNoEncontrada(Exception):
     """No hay una oferta de cupo pendiente para ese paciente."""
 
 
+class OfertaYaPendiente(Exception):
+    """La lista ya tiene una oferta esperando la respuesta de un paciente."""
+
+
 class HoraOfrecidaNoDisponible(ClinicFlowError):
     """Al aceptar, la hora ofrecida ya había sido tomada por alguien más."""
 
@@ -353,6 +357,37 @@ def ofrecer_cupo_a_lista(
     db.add(oferta)
     db.commit()
     db.refresh(oferta)
+    return oferta
+
+
+def ofrecer_siguiente_cupo(
+    db: Session, lista_id: int, ahora: datetime | None = None
+) -> OfertaCupoORM:
+    """Ofrece (sin asignar) la próxima hora al siguiente en espera, con validación explícita.
+
+    Es la acción MANUAL de la recepcionista: en lugar de crear la cita
+    directamente, crea una oferta que el paciente debe confirmar o rechazar desde
+    «Mis mensajes». A diferencia de `ofrecer_cupo_a_lista` (best-effort, para la
+    automatización), aquí se lanzan errores claros para informar a la recepción:
+    `ListaEsperaNoEncontrada`, `OfertaYaPendiente` si ya hay una oferta sin
+    responder, `ColaVacia` si no hay pacientes, o `SinCupoDisponible` si no hay
+    horas libres.
+    """
+    ahora = ahora or datetime.now()
+    if RepositorioListaEspera(db).obtener(lista_id) is None:
+        raise ListaEsperaNoEncontrada(f"No existe la lista de espera {lista_id}.")
+    if _oferta_pendiente_de_lista(db, lista_id) is not None:
+        raise OfertaYaPendiente(
+            f"La lista {lista_id} ya tiene una oferta esperando la respuesta del paciente."
+        )
+    if siguiente_en_espera(db, lista_id) is None:
+        raise ColaVacia(f"La lista de espera {lista_id} no tiene pacientes.")
+
+    oferta = ofrecer_cupo_a_lista(db, lista_id, ahora)
+    if oferta is None:
+        raise SinCupoDisponible(
+            "No hay horas libres en la especialidad para ofrecer un cupo."
+        )
     return oferta
 
 
