@@ -27,7 +27,7 @@ from app.backend import models  # noqa: F401  (import por efecto secundario)
 from app.backend.api.routes import (
     admin_agendas, agenda, asistente, auth, citas, clinicas, dashboard,
     derivaciones, especialidades, gestion_citas, health, lista_espera,
-    mi_agenda, mis_citas, mis_mensajes, usuarios,
+    mi_agenda, mis_citas, mis_mensajes, ofertas, usuarios,
 )
 
 # FRONTEND_DIR y templates se definen una sola vez en el módulo compartido.
@@ -105,6 +105,7 @@ app.include_router(dashboard.router)
 app.include_router(agenda.router)
 app.include_router(mis_citas.router)
 app.include_router(mis_mensajes.router)
+app.include_router(ofertas.router)
 app.include_router(lista_espera.router)
 app.include_router(derivaciones.router)
 app.include_router(gestion_citas.router)

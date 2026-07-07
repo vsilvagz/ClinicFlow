@@ -35,6 +35,7 @@ from app.backend.models.lista_espera import (
     InscripcionEsperaORM,
     ListaEsperaORM,
 )
+from app.backend.models.oferta_cupo import OfertaCupoORM
 
 # __all__ declara qué nombres se exportan con `from ...models import *`.
 __all__ = [
@@ -62,4 +63,5 @@ __all__ = [
     # Lista de espera
     "ListaEsperaORM",
     "InscripcionEsperaORM",
+    "OfertaCupoORM",
 ]

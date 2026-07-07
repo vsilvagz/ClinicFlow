@@ -35,6 +35,24 @@
         .msg-fecha{font-size:12px;color:var(--muted);margin-top:6px}
         .empty{text-align:center;padding:60px 20px;color:var(--muted)}
         .empty strong{display:block;font-size:18px;color:var(--ink);font-weight:700;margin-bottom:8px}
+        /* Oferta de cupo liberado: tarjeta destacada con acciones. */
+        .oferta{border:1px solid #BBD4C2;background:#F1FAF4;border-left:3px solid #0F7A52}
+        .oferta .msg-icon{background:#D8F0E2}
+        .oferta .msg-tipo{color:#0F7A52}
+        .oferta-acciones{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+        .oferta-no{margin-top:14px;padding-top:14px;border-top:1px dashed #C4DDD0}
+        .oferta-no .pregunta{font-size:13.5px;font-weight:700;color:var(--ink-2);margin-bottom:10px}
+        .oferta-no .fila{display:flex;gap:10px;flex-wrap:wrap}
+        .btn{font:inherit;font-weight:700;font-size:13.5px;border-radius:10px;padding:9px 15px;border:1px solid transparent;cursor:pointer}
+        .btn-si{background:#0F7A52;color:#fff}
+        .btn-si:hover{background:#0C6644}
+        .btn-no{background:#fff;color:var(--ink-2);border-color:var(--border)}
+        .btn-no:hover{border-color:#C4CCD6}
+        .btn-esperar{background:#fff;color:var(--primary);border-color:#C7D7FB}
+        .btn-esperar:hover{background:#EAF0FF}
+        .btn-salir{background:#fff;color:#B42318;border-color:#F0C8C3}
+        .btn-salir:hover{background:#FDECEA}
+        form.inline{display:inline}
     </style>
 </head>
 <body>
@@ -52,6 +70,40 @@
             <h1>Mis mensajes</h1>
             <p class="sub">{{ usuario.nombre }}</p>
 
+            {% for of in ofertas %}
+            <div class="msg-card oferta">
+                <div class="msg-icon">🎟️</div>
+                <div class="msg-body">
+                    <div class="msg-tipo">Hora disponible</div>
+                    <div class="msg-texto">
+                        Se liberó una hora de <strong>{{ of.especialidad }}</strong>
+                        con {{ of.medico_nombre }} para el
+                        <strong>{{ of.inicio.strftime("%d/%m/%Y a las %H:%M") }}</strong>.
+                        ¿Quieres tomarla?
+                    </div>
+
+                    <div class="oferta-acciones" id="acc-{{ of.id }}">
+                        <form class="inline" method="post" action="/ofertas/{{ of.id }}/aceptar">
+                            <button class="btn btn-si" type="submit">Sí, confirmar hora</button>
+                        </form>
+                        <button class="btn btn-no" type="button" onclick="mostrarNo({{ of.id }})">No</button>
+                    </div>
+
+                    <div class="oferta-no" id="no-{{ of.id }}" style="display:none">
+                        <div class="pregunta">¿Quieres seguir en la lista de espera?</div>
+                        <div class="fila">
+                            <form class="inline" method="post" action="/ofertas/{{ of.id }}/seguir">
+                                <button class="btn btn-esperar" type="submit">Sí, seguir esperando</button>
+                            </form>
+                            <form class="inline" method="post" action="/ofertas/{{ of.id }}/salir">
+                                <button class="btn btn-salir" type="submit">No, salir de la lista</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
             {% if mensajes %}
                 {% for msg in mensajes %}
                 <div class="msg-card {% if not msg.leida %}nueva{% endif %}">
@@ -65,7 +117,7 @@
                     </div>
                 </div>
                 {% endfor %}
-            {% else %}
+            {% elif not ofertas %}
                 <div class="empty">
                     <strong>Sin mensajes</strong>
                     No tienes notificaciones por ahora.
@@ -73,5 +125,13 @@
             {% endif %}
         </div>
     </main>
+
+    <script>
+        // Al pulsar "No" en una oferta, se revela la pregunta de seguir o salir.
+        function mostrarNo(id){
+            document.getElementById("acc-" + id).style.display = "none";
+            document.getElementById("no-" + id).style.display = "block";
+        }
+    </script>
 </body>
 </html>

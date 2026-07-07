@@ -15,6 +15,7 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
+from app.backend import events
 from app.backend.domain.agenda import Agenda, BloqueHorario, Suspension
 from app.backend.domain.errores import MedicoNoEncontrado
 from app.backend.models.agenda import (
@@ -170,6 +171,12 @@ def suspender_agenda(
     db.add(suspension)
     db.commit()
     db.refresh(suspension)
+
+    # Cada cita cancelada por la suspensión libera un cupo: se avisa para que la
+    # lista de espera reasigne una hora disponible de la especialidad.
+    for cita_cancelada in canceladas:
+        events.emitir(events.CITA_CANCELADA, db=db, cita=cita_cancelada)
+
     return suspension, canceladas
 
 

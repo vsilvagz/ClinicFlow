@@ -12,6 +12,7 @@ from app.backend.core.database import get_db
 from app.backend.domain.enums import RolUsuario
 from app.backend.models.mensajes import MensajeORM
 from app.backend.models.usuarios import UsuarioORM
+from app.backend.services.lista_espera_service import ofertas_pendientes_de_paciente
 
 router = APIRouter(tags=["mis-mensajes"])
 
@@ -26,6 +27,9 @@ def mis_mensajes(
         return RedirectResponse("/login", status_code=303)
     if usuario.rol != RolUsuario.PACIENTE:
         return RedirectResponse("/portal", status_code=303)
+
+    # Ofertas de cupo aún sin responder: se muestran arriba, con botones de acción.
+    ofertas = ofertas_pendientes_de_paciente(db, usuario.run_usuario)
 
     mensajes = list(db.scalars(
         select(MensajeORM)
@@ -45,6 +49,7 @@ def mis_mensajes(
             "request": request,
             "app_name": settings.app_name,
             "usuario": usuario,
+            "ofertas": ofertas,
             "mensajes": mensajes,
         },
     )

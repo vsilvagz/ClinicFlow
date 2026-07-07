@@ -33,3 +33,13 @@ class EstadoDerivacion(str, Enum):
     PENDIENTE  = "pendiente"
     COMPLETADA = "completada"
     EXPIRADA   = "expirada"
+
+
+# Ciclo de vida de una oferta de cupo liberado en la lista de espera:
+# el sistema la crea (PENDIENTE) cuando se libera una hora; el paciente la acepta
+# (ACEPTADA) y se crea su cita, o la rechaza (RECHAZADA) para seguir esperando o
+# salir de la lista.
+class EstadoOferta(str, Enum):
+    PENDIENTE = "pendiente"
+    ACEPTADA  = "aceptada"
+    RECHAZADA = "rechazada"

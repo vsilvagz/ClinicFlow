@@ -14,6 +14,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.backend import events
 from app.backend.domain.citas import Cita
 from app.backend.domain.errores import (
     CitaDuplicadaEnPeriodo,
@@ -160,7 +161,11 @@ def confirmar_cita(db: Session, cita_id: UUID) -> CitaORM:
 
 
 def cancelar_cita(db: Session, cita_id: UUID) -> CitaORM:
-    return _aplicar_transicion(db, cita_id, lambda c: c.cancelar())
+    orm = _aplicar_transicion(db, cita_id, lambda c: c.cancelar())
+    # Al liberarse la hora, se avisa para que la lista de espera la reasigne.
+    # (La automatización vive en lista_espera_service, suscrita a este evento.)
+    events.emitir(events.CITA_CANCELADA, db=db, cita=orm)
+    return orm
 
 
 def completar_cita(db: Session, cita_id: UUID) -> CitaORM:
